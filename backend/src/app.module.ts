@@ -23,7 +23,7 @@ import * as bcrypt from 'bcrypt';
         port: +configService.get('MYSQL_PORT'),
         username: configService.get('MYSQL_USER'),
         password: configService.get('MYSQL_PASSWORD'),
-        // 开发环境开启，生产环境建议关闭
+        // 寮€鍙戠幆澧冨紑鍚紝鐢熶骇鐜寤鸿鍏抽棴
         synchronize: true,
         autoLoadEntities: true,
         timezone: 'Z',
@@ -61,8 +61,8 @@ export class AppModule {
   ) {}
 
   /**
-   * 应用启动后初始化默认数据
-   * 自动创建管理员账号和默认配置
+   * 搴旂敤鍚姩鍚庡垵濮嬪寲榛樿鏁版嵁
+   * 鑷姩鍒涘缓绠＄悊鍛樿处鍙峰拰榛樿閰嶇疆
    */
   async onModuleInit() {
     await this.initDefaultData();
@@ -84,52 +84,50 @@ export class AppModule {
 
       await dataSource.initialize();
       
-      // 检查是否已有管理员账号
+      // 妫€鏌ユ槸鍚﹀凡鏈夌鐞嗗憳璐﹀彿
       const adminExists = await dataSource.getRepository(User).findOne({
         where: { username: 'admin' }
       });
 
       if (!adminExists) {
-        // 创建默认管理员账号 (密码: admin)
+        // 鍒涘缓榛樿绠＄悊鍛樿处鍙?(瀵嗙爜: admin)
         const hashedPassword = await bcrypt.hash('admin', 10);
         await dataSource.getRepository(User).save({
           username: 'admin',
-          nickname: '管理员',
+          nickname: '绠＄悊鍛?,
           role: 'admin',
           password: hashedPassword,
         });
-        console.log('[Init] 默认管理员账号已创建: admin / admin');
+        console.log('[Init] 榛樿绠＄悊鍛樿处鍙峰凡鍒涘缓: admin / admin');
       }
 
-      // 检查是否已有默认报警规则
-      const rulesCount = await dataSource.getRepository(AlarmRule).count();
+      // 妫€鏌ユ槸鍚﹀凡鏈夐粯璁ゆ姤璀﹁鍒?      const rulesCount = await dataSource.getRepository(AlarmRule).count();
       if (rulesCount === 0) {
         await dataSource.getRepository(AlarmRule).save([
-          { name: '人脸检测', description: '检测摄像头画面中出现的人脸', model_class: 'person', confidence_threshold: 0.6, enabled: true },
-          { name: '车辆检测', description: '检测摄像头画面中出现的车辆', model_class: 'car', confidence_threshold: 0.5, enabled: true },
-          { name: '异常行为检测', description: '检测异常行为', model_class: '异常行为', confidence_threshold: 0.7, enabled: true },
+          { name: '浜鸿劯妫€娴?, description: '妫€娴嬫憚鍍忓ご鐢婚潰涓嚭鐜扮殑浜鸿劯', model_class: 'person', confidence_threshold: 0.6, enabled: true },
+          { name: '杞﹁締妫€娴?, description: '妫€娴嬫憚鍍忓ご鐢婚潰涓嚭鐜扮殑杞﹁締', model_class: 'car', confidence_threshold: 0.5, enabled: true },
+          { name: '寮傚父琛屼负妫€娴?, description: '妫€娴嬪紓甯歌涓?, model_class: '寮傚父琛屼负', confidence_threshold: 0.7, enabled: true },
         ]);
-        console.log('[Init] 默认报警规则已创建');
+        console.log('[Init] 榛樿鎶ヨ瑙勫垯宸插垱寤?);
       }
 
-      // 检查是否已有默认地图配置
-      const mapCount = await dataSource.getRepository(MapConfig).count();
+      // 妫€鏌ユ槸鍚﹀凡鏈夐粯璁ゅ湴鍥鹃厤缃?      const mapCount = await dataSource.getRepository(MapConfig).count();
       if (mapCount === 0) {
         await dataSource.getRepository(MapConfig).save({
-          name: '默认地图',
+          name: '榛樿鍦板浘',
           map_type: 'tile',
           center_longitude: 117.060,
           center_latitude: 36.195,
           zoom: 18,
           config_json: JSON.stringify({ url: 'https://tile.openstreetmap.org/{z}/{x}/{y.png}' }),
         });
-        console.log('[Init] 默认地图配置已创建');
+        console.log('[Init] 榛樿鍦板浘閰嶇疆宸插垱寤?);
       }
 
       await dataSource.destroy();
-      console.log('[Init] 数据库初始化完成');
+      console.log('[Init] 鏁版嵁搴撳垵濮嬪寲瀹屾垚');
     } catch (error) {
-      console.error('[Init] 初始化失败:', error.message);
+      console.error('[Init] 鍒濆鍖栧け璐?', error.message);
     }
   }
 }
