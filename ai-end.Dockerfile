@@ -9,7 +9,11 @@ COPY ./ai-end /usr/share/campus-surveillance-system/ai-end
 
 WORKDIR /usr/share/campus-surveillance-system/ai-end
 
-RUN apt-get update && apt-get install ffmpeg libsm6 libxext6 -y &&\
-  conda env create -f environment.yml -n ai-end
+# Install ffmpeg and system dependencies
+RUN apt-get update && apt-get install -y ffmpeg libsm6 libxext6 && \
+  rm -rf /var/lib/apt/lists/*
 
-CMD ["/opt/conda/envs/ai-end/bin/python3", "main.py"]
+# Install Python dependencies with pip (CPU-only PyTorch)
+RUN pip install --no-cache-dir -r requirements.txt
+
+CMD ["python3", "main.py"]
