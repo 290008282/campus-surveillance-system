@@ -52,8 +52,8 @@ services:
       dockerfile: ai-end.Dockerfile
     container_name: campus-ai-end
     environment:
-      HTTP_SERVER_URL: http://front-backend:3000
-      RTMP_SERVER_URL: rtmp://front-backend:1935/live
+      HTTP_SERVER_URL: "http://front-backend:3000"
+      RTMP_SERVER_URL: "rtmp://front-backend:1935/live"
       ADMIN_USERNAME: admin
       ADMIN_PASSWORD: admin
     depends_on:
