@@ -1,20 +1,20 @@
-FROM node:lts-buster-slim
+FROM node:20-bookworm-slim
 
 ENV TZ=Asia/Shanghai
 RUN echo $TZ > /etc/timezone && \
   ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
   dpkg-reconfigure -f noninteractive tzdata
 
-# 瀹夎 nginx + rtmp
+# Install nginx + rtmp
 RUN apt-get update && apt-get install -y nginx libnginx-mod-rtmp && \
   rm -f /etc/nginx/nginx.conf
 
-# 鏋勫缓鍓嶇
+# Build frontend
 COPY ./frontend /usr/share/campus-surveillance-system/frontend
 WORKDIR /usr/share/campus-surveillance-system/frontend
 RUN npm install --legacy-peer-deps && npm run build
 
-# 瀹夎鍚庣
+# Install backend
 COPY ./backend /usr/share/campus-surveillance-system/backend
 WORKDIR /usr/share/campus-surveillance-system/backend
 RUN npm i -g pnpm && pnpm i
