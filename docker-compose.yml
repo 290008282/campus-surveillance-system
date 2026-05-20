@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # MySQL 鏁版嵁搴?  mysql:
+  mysql:
     image: mysql:8.0
     container_name: campus-mysql
     environment:
@@ -20,7 +20,6 @@ services:
     networks:
       - campus-network
 
-  # 鍓嶇 + 鍚庣 (浣跨敤椤圭洰鍘熸湁鐨勫崟浣?Dockerfile)
   front-backend:
     build:
       context: .
@@ -46,7 +45,7 @@ services:
       - campus-network
     restart: unless-stopped
 
-  # AI 瑙嗛鍒嗘瀽绔?  ai-end:
+  ai-end:
     build:
       context: .
       dockerfile: ai-end.Dockerfile
