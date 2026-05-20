@@ -1,4 +1,4 @@
-FROM node:20-slim
+FROM node:18
 
 ENV TZ=Asia/Shanghai
 RUN echo $TZ > /etc/timezone && \
