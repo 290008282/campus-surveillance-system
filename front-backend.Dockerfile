@@ -1,4 +1,4 @@
-FROM node:20-bookworm-slim
+FROM node:20-slim
 
 ENV TZ=Asia/Shanghai
 RUN echo $TZ > /etc/timezone && \
