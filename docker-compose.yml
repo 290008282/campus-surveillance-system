@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  # MySQL 数据库
+  mysql:
+    image: mysql:8.0
+    container_name: campus-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: campus-surveillance-system
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      # 数据库初始化脚本
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - campus-network
+
+  # 后端 API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: campus-backend
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: campus-surveillance-system
+      MYSQL_USER: root
+      MYSQL_PASSWORD: root
+      JWT_SECRET: campus-secret-key-change-in-production
+      JWT_EXPIRES_IN: 30d
+    ports:
+      - "3000:3000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - campus-network
+    restart: unless-stopped
+
+  # 前端 + Nginx (RTMP)
+  frontend:
+    build:
+      context: .
+      dockerfile: front-backend.Dockerfile
+    container_name: campus-frontend
+    environment:
+      - NODE_ENV=production
+    ports:
+      - "8080:80"
+      - "1515:1935"
+    depends_on:
+      - backend
+    networks:
+      - campus-network
+    restart: unless-stopped
+
+  # AI 视频分析端
+  ai-end:
+    build:
+      context: ./ai-end
+      dockerfile: ../ai-end.Dockerfile
+    container_name: campus-ai-end
+    environment:
+      HTTP_SERVER_URL: http://backend:3000
+      RTMP_SERVER_URL: rtmp://localhost:1515/live
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: admin
+    depends_on:
+      - backend
+    networks:
+      - campus-network
+    restart: unless-stopped
+    # GPU 支持（可选）
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+
+volumes:
+  mysql_data:
+
+networks:
+  campus-network:
+    driver: bridge
