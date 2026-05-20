@@ -1,7 +1,7 @@
-# CPU-only PyTorch (much smaller than CUDA version)
-torch==2.0.0+cpu
-torchvision==0.15.0+cpu
-torchaudio==2.0.0
+# CPU-only PyTorch
+torch==2.5.1+cpu
+torchvision==0.20.1+cpu
+torchaudio==2.5.1+cpu
 --extra-index-url https://download.pytorch.org/whl/cpu
 
 # YOLO
