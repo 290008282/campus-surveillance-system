@@ -1,8 +1,7 @@
 version: '3.8'
 
 services:
-  # MySQL 数据库
-  mysql:
+  # MySQL 鏁版嵁搴?  mysql:
     image: mysql:8.0
     container_name: campus-mysql
     environment:
@@ -12,7 +11,6 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      # 数据库初始化脚本
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
@@ -22,12 +20,12 @@ services:
     networks:
       - campus-network
 
-  # 后端 API
-  backend:
+  # 鍓嶇 + 鍚庣 (浣跨敤椤圭洰鍘熸湁鐨勫崟浣?Dockerfile)
+  front-backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: campus-backend
+      context: .
+      dockerfile: front-backend.Dockerfile
+    container_name: campus-front-backend
     environment:
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306
@@ -36,8 +34,11 @@ services:
       MYSQL_PASSWORD: root
       JWT_SECRET: campus-secret-key-change-in-production
       JWT_EXPIRES_IN: 30d
+      PUBLIC_DIR_ABSOLUTE_PATH: /var/www/html/public
     ports:
+      - "8088:80"
       - "3000:3000"
+      - "1515:1935"
     depends_on:
       mysql:
         condition: service_healthy
@@ -45,45 +46,21 @@ services:
       - campus-network
     restart: unless-stopped
 
-  # 前端 + Nginx (RTMP)
-  frontend:
+  # AI 瑙嗛鍒嗘瀽绔?  ai-end:
     build:
       context: .
-      dockerfile: front-backend.Dockerfile
-    container_name: campus-frontend
-    environment:
-      - NODE_ENV=production
-    ports:
-      - "8088:80"
-      - "1515:1935"
-    depends_on:
-      - backend
-    networks:
-      - campus-network
-    restart: unless-stopped
-
-  # AI 视频分析端
-  ai-end:
-    build:
-      context: ./ai-end
-      dockerfile: ../ai-end.Dockerfile
+      dockerfile: ai-end.Dockerfile
     container_name: campus-ai-end
     environment:
-      HTTP_SERVER_URL: http://backend:3000
-      RTMP_SERVER_URL: rtmp://localhost:1515/live
+      HTTP_SERVER_URL: http://front-backend:3000
+      RTMP_SERVER_URL: rtmp://front-backend:1935/live
       ADMIN_USERNAME: admin
       ADMIN_PASSWORD: admin
     depends_on:
-      - backend
+      - front-backend
     networks:
       - campus-network
     restart: unless-stopped
-    # GPU 支持（可选）
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
 
 volumes:
   mysql_data:
