@@ -1,123 +1,108 @@
-# 智慧园区视频监控系统 - Docker 部署指南
+# 鏅烘収鍥尯瑙嗛鐩戞帶绯荤粺 - Docker 閮ㄧ讲鎸囧崡
 
-## 修复内容
+## 淇鍐呭
 
-### 已完成的修复
+### 宸插畬鎴愮殑淇
 
-1. **docker-compose.yml** - 统一管理所有服务
-2. **init.sql** - 数据库初始化脚本
-3. **user.service.ts** - 修复登录验证（支持 bcrypt）
-4. **app.module.ts** - 添加自动初始化默认数据
-
+1. **docker-compose.yml** - 缁熶竴绠＄悊鎵€鏈夋湇鍔?2. **init.sql** - 鏁版嵁搴撳垵濮嬪寲鑴氭湰
+3. **user.service.ts** - 淇鐧诲綍楠岃瘉锛堟敮鎸?bcrypt锛?4. **app.module.ts** - 娣诲姞鑷姩鍒濆鍖栭粯璁ゆ暟鎹?
 ---
 
-## 快速部署
-
-### 前置要求
+## 蹇€熼儴缃?
+### 鍓嶇疆瑕佹眰
 
 - Docker Desktop
 - Docker Compose
 
-### 部署步骤
+### 閮ㄧ讲姝ラ
 
-#### 1. 拉取项目（已修复版本）
-```bash
+#### 1. 鎷夊彇椤圭洰锛堝凡淇鐗堟湰锛?```bash
 git clone https://github.com/290008282/campus-surveillance-system.git
 cd campus-surveillance-system
 ```
 
-#### 2. 构建并启动所有服务
-```bash
+#### 2. 鏋勫缓骞跺惎鍔ㄦ墍鏈夋湇鍔?```bash
 docker-compose up -d --build
 ```
 
-#### 3. 查看服务状态
-```bash
+#### 3. 鏌ョ湅鏈嶅姟鐘舵€?```bash
 docker-compose ps
 ```
 
-#### 4. 查看日志
+#### 4. 鏌ョ湅鏃ュ織
 ```bash
 docker-compose logs -f
 ```
 
 ---
 
-## 访问地址
+## 璁块棶鍦板潃
 
-| 服务 | 地址 | 说明 |
+| 鏈嶅姟 | 鍦板潃 | 璇存槑 |
 |------|------|------|
-| **前端** | http://localhost:8080 | Web 界面 |
-| **RTMP** | rtmp://localhost:1515/live | 直播流 |
-| **MySQL** | localhost:3306 | 数据库 |
+| **鍓嶇** | http://localhost:8080 | Web 鐣岄潰 |
+| **RTMP** | rtmp://localhost:1515/live | 鐩存挱娴?|
+| **MySQL** | localhost:3306 | 鏁版嵁搴?|
 
 ---
 
-## 默认账号
+## 榛樿璐﹀彿
 
-| 角色 | 用户名 | 密码 |
+| 瑙掕壊 | 鐢ㄦ埛鍚?| 瀵嗙爜 |
 |------|--------|------|
-| **管理员** | admin | admin |
-| **普通用户** | (注册) | (注册) |
+| **绠＄悊鍛?* | admin | admin |
+| **鏅€氱敤鎴?* | (娉ㄥ唽) | (娉ㄥ唽) |
 
 ---
 
-## 遇到问题？
-
-### 问题 1: MySQL 连接失败
+## 閬囧埌闂锛?
+### 闂 1: MySQL 杩炴帴澶辫触
 ```bash
-# 检查 MySQL 容器状态
-docker-compose ps mysql
+# 妫€鏌?MySQL 瀹瑰櫒鐘舵€?docker-compose ps mysql
 docker-compose logs mysql
 ```
 
-### 问题 2: 后端启动失败
+### 闂 2: 鍚庣鍚姩澶辫触
 ```bash
-# 查看后端日志
+# 鏌ョ湅鍚庣鏃ュ織
 docker-compose logs backend
 ```
 
-### 问题 3: 端口被占用
-```bash
-# 查看端口占用
+### 闂 3: 绔彛琚崰鐢?```bash
+# 鏌ョ湅绔彛鍗犵敤
 netstat -ano | findstr "8080 3306 1515"
 ```
 
-修改 `docker-compose.yml` 中的端口映射：
-
+淇敼 `docker-compose.yml` 涓殑绔彛鏄犲皠锛?
 ```yaml
 ports:
-  - "8081:80"  # 改成 8081
-  - "1516:1935"  # 改成 1516
+  - "8081:80"  # 鏀规垚 8081
+  - "1516:1935"  # 鏀规垚 1516
 ```
 
 ---
 
-## 项目结构
+## 椤圭洰缁撴瀯
 
 ```
 campus-surveillance-system/
-├── docker-compose.yml     # 部署配置 ✓ 已修复
-├── init.sql              # 数据库初始化 ✓ 已修复
-├── backend/
-│   ├── Dockerfile
-│   ├── server.config.env
-│   └── src/
-│       ├── app.module.ts    # 初始化 ✓ 已修复
-│       └── services/user/
-│           └── user.service.ts  # 登录验证 ✓ 已修复
-├── frontend/             # 前端 (构建)
-├── ai-end/               # AI 端 (Python)
-└── docs/                 # 文档
+鈹溾攢鈹€ docker-compose.yml     # 閮ㄧ讲閰嶇疆 鉁?宸蹭慨澶?鈹溾攢鈹€ init.sql              # 鏁版嵁搴撳垵濮嬪寲 鉁?宸蹭慨澶?鈹溾攢鈹€ backend/
+鈹?  鈹溾攢鈹€ Dockerfile
+鈹?  鈹溾攢鈹€ server.config.env
+鈹?  鈹斺攢鈹€ src/
+鈹?      鈹溾攢鈹€ app.module.ts    # 鍒濆鍖?鉁?宸蹭慨澶?鈹?      鈹斺攢鈹€ services/user/
+鈹?          鈹斺攢鈹€ user.service.ts  # 鐧诲綍楠岃瘉 鉁?宸蹭慨澶?鈹溾攢鈹€ frontend/             # 鍓嶇 (鏋勫缓)
+鈹溾攢鈹€ ai-end/               # AI 绔?(Python)
+鈹斺攢鈹€ docs/                 # 鏂囨。
 ```
 
 ---
 
-## 手动部署（分步）
+## 鎵嬪姩閮ㄧ讲锛堝垎姝ワ級
 
-如果 `docker-compose up` 构建失败，可以分步部署：
+濡傛灉 `docker-compose up` 鏋勫缓澶辫触锛屽彲浠ュ垎姝ラ儴缃诧細
 
-### 1. 启动 MySQL
+### 1. 鍚姩 MySQL
 ```bash
 docker run -d \
   --name campus-mysql \
@@ -128,7 +113,7 @@ docker run -d \
   mysql:8.0
 ```
 
-### 2. 启动后端
+### 2. 鍚姩鍚庣
 ```bash
 cd backend
 docker build -t campus-backend .
@@ -144,7 +129,7 @@ docker run -d \
   campus-backend
 ```
 
-### 3. 启动前端+Nginx
+### 3. 鍚姩鍓嶇+Nginx
 ```bash
 docker build -f front-backend.Dockerfile -t campus-frontend .
 docker run -d \
@@ -156,10 +141,8 @@ docker run -d \
 
 ---
 
-## AI 端配置
-
-AI 端需要正确连接到后端：
-
+## AI 绔厤缃?
+AI 绔渶瑕佹纭繛鎺ュ埌鍚庣锛?
 ```bash
 docker run -d \
   --name campus-ai-end \
@@ -170,36 +153,34 @@ docker run -d \
   campus-ai-end
 ```
 
-> 注意: Windows 上使用 `host.docker.internal`，Linux 上使用 IP 地址
+> 娉ㄦ剰: Windows 涓婁娇鐢?`host.docker.internal`锛孡inux 涓婁娇鐢?IP 鍦板潃
 
 ---
 
-## 验证部署成功
+## 楠岃瘉閮ㄧ讲鎴愬姛
 
-1. 访问 http://localhost:8080
-2. 使用 admin/admin 登录
-3. 检查摄像头管理页面
+1. 璁块棶 http://localhost:8080
+2. 浣跨敤 admin/admin 鐧诲綍
+3. 妫€鏌ユ憚鍍忓ご绠＄悊椤甸潰
 
 ---
 
-## 自定义修改
-
-### 修改管理员密码
-```bash
-# 进入后端容器
+## 鑷畾涔変慨鏀?
+### 淇敼绠＄悊鍛樺瘑鐮?```bash
+# 杩涘叆鍚庣瀹瑰櫒
 docker exec -it campus-backend sh
 
-# 使用 Node.js 创建密码哈希
+# 浣跨敤 Node.js 鍒涘缓瀵嗙爜鍝堝笇
 node -e "const bcrypt = require('bcrypt'); bcrypt.hash('your-password', 10).then(p => console.log(p));"
 ```
 
-然后在数据库中更新：
+鐒跺悗鍦ㄦ暟鎹簱涓洿鏂帮細
 ```sql
-UPDATE users SET password = '新哈希值' WHERE username = 'admin';
+UPDATE users SET password = '鏂板搱甯屽€? WHERE username = 'admin';
 ```
 
-### 修改 JWT Secret
-在 `docker-compose.yml` 中修改：
+### 淇敼 JWT Secret
+鍦?`docker-compose.yml` 涓慨鏀癸細
 ```yaml
 environment:
   JWT_SECRET: your-secret-key
@@ -207,9 +188,7 @@ environment:
 
 ---
 
-## 技术支持
-
-如有问题，请检查：
-1. Docker Desktop 是否运行
-2. 端口 8080/3306/1515 是否被占用
-3. MySQL 容器是否健康启动
+## 鎶€鏈敮鎸?
+濡傛湁闂锛岃妫€鏌ワ細
+1. Docker Desktop 鏄惁杩愯
+2. 绔彛 8080/3306/1515 鏄惁琚崰鐢?3. MySQL 瀹瑰櫒鏄惁鍋ュ悍鍚姩
