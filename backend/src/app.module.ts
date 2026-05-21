@@ -12,6 +12,13 @@ import { MapConfig } from './services/map-config/map-config.entity';
 import { Camera } from './services/camera/camera.entity';
 import { AlarmEvent } from './services/alarm-event/alarm-event.entity';
 import * as bcrypt from 'bcryptjs';
+import * as crypto from 'crypto';
+
+const HMAC_KEY = 'campus-surveillance-system';
+
+function hmacSha256(text: string): string {
+  return crypto.createHmac('sha256', HMAC_KEY).update(text).digest('base64');
+}
 
 @Module({
   imports: [
@@ -79,7 +86,8 @@ export class AppModule {
       });
 
       if (!adminExists) {
-        const hashedPassword = await bcrypt.hash('admin', 10);
+        const hmacResult = hmacSha256('admin');
+        const hashedPassword = await bcrypt.hash(hmacResult, 10);
         await dataSource.getRepository(User).save({
           username: 'admin',
           nickname: 'Administrator',
