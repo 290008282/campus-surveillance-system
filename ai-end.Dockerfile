@@ -5,11 +5,14 @@ RUN echo $TZ > /etc/timezone && \
   ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
   dpkg-reconfigure -f noninteractive tzdata
 
+# Configure apt mirror
+RUN sed -i 's|http://deb.debian.org/debian/|http://mirrors.aliyun.com/debian/|g' /etc/apt/sources.list 2>/dev/null || true
+
 COPY ./ai-end /usr/share/campus-surveillance-system/ai-end
 
 WORKDIR /usr/share/campus-surveillance-system/ai-end
 
-# Install ffmpeg and system dependencies
+# Install ffmpeg
 RUN apt-get update && apt-get install -y ffmpeg libsm6 libxext6 && \
   rm -rf /var/lib/apt/lists/*
 
