@@ -6,7 +6,8 @@ RUN echo $TZ > /etc/timezone && \
   dpkg-reconfigure -f noninteractive tzdata
 
 # Install nginx + rtmp
-RUN apt-get update && apt-get install -y nginx libnginx-mod-rtmp && \
+RUN sed -i 's|http://deb.debian.org/debian/|http://mirrors.aliyun.com/debian/|g' /etc/apt/sources.list 2>/dev/null || true \
+    && apt-get update && apt-get install -y nginx libnginx-mod-rtmp && \
   rm -f /etc/nginx/nginx.conf
 
 # Build frontend
