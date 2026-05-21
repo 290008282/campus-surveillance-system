@@ -10,6 +10,7 @@ import { User } from './services/user/user.entity';
 import { AlarmRule } from './services/alarm-rule/alarm-rule.entity';
 import { MapConfig } from './services/map-config/map-config.entity';
 import { Camera } from './services/camera/camera.entity';
+import { AlarmEvent } from './services/alarm-event/alarm-event.entity';
 import * as bcrypt from 'bcryptjs';
 
 @Module({
@@ -70,7 +71,7 @@ export class AppModule {
         port: parseInt(process.env.MYSQL_PORT || '3306'),
         username: process.env.MYSQL_USER || 'root',
         password: process.env.MYSQL_PASSWORD || 'root',
-        entities: [User, AlarmRule, MapConfig, Camera],
+        entities: [User, AlarmRule, MapConfig, Camera, AlarmEvent],
         synchronize: true,
       });
 
