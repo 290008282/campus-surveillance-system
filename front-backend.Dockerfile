@@ -18,7 +18,7 @@ RUN npm install --legacy-peer-deps && npm run build
 # Install backend
 COPY ./backend /usr/share/campus-surveillance-system/backend
 WORKDIR /usr/share/campus-surveillance-system/backend
-RUN npm i -g pnpm && pnpm i
+RUN npm i -g pnpm && pnpm i && pnpm run build
 
 COPY ./backend/nginx.conf /etc/nginx/nginx.conf
 
