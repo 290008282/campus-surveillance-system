@@ -5,8 +5,10 @@ RUN echo $TZ > /etc/timezone && \
   ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
   dpkg-reconfigure -f noninteractive tzdata
 
-# Configure apt mirror
-RUN sed -i 's|http://deb.debian.org/debian/|http://mirrors.aliyun.com/debian/|g' /etc/apt/sources.list 2>/dev/null || true
+# Replace sources.list with Aliyun mirror
+RUN echo 'deb http://mirrors.aliyun.com/debian/ trixie main non-free-firmware' > /etc/apt/sources.list && \
+    echo 'deb http://mirrors.aliyun.com/debian/ trixie-updates main non-free-firmware' >> /etc/apt/sources.list && \
+    echo 'deb http://mirrors.aliyun.com/debian-security/ trixie-security main non-free-firmware' >> /etc/apt/sources.list
 
 COPY ./ai-end /usr/share/campus-surveillance-system/ai-end
 
