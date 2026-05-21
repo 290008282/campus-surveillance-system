@@ -9,7 +9,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { User } from './services/user/user.entity';
 import { AlarmRule } from './services/alarm-rule/alarm-rule.entity';
 import { MapConfig } from './services/map-config/map-config.entity';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 
 @Module({
   imports: [
