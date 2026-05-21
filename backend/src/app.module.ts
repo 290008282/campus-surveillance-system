@@ -54,9 +54,6 @@ import * as bcrypt from 'bcryptjs';
   ],
 })
 export class AppModule {
-  /**
-   * Initialize default data on application startup
-   */
   async onModuleInit() {
     await this.initDefaultData();
   }
@@ -104,12 +101,12 @@ export class AppModule {
       const mapCount = await dataSource.getRepository(MapConfig).count();
       if (mapCount === 0) {
         await dataSource.getRepository(MapConfig).save({
-          name: 'Default Map',
-          map_type: 'tile',
-          center_longitude: 117.060,
-          center_latitude: 36.195,
-          zoom: 18,
-          config_json: JSON.stringify({ url: 'https://tile.openstreetmap.org/{z}/{x}/{y.png}' }),
+          layerType: 'tileLayer',
+          layerUrlOrPath: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          mapCenter: [117.060, 36.195],
+          mapZoom: 18,
+          minZoom: 0,
+          maxZoom: 18,
         });
         console.log('[Init] Default map config created');
       }
