@@ -25,22 +25,32 @@ export class UserService {
     const user = await this.userRepo.findOne({ where: { username } });
     if (!user) return null;
 
-    // bcrypt verification
+    // If stored password starts with $, it's bcrypt hashed
     if (user.password.startsWith('$')) {
+      // Try bcrypt comparison with plaintext password
       const isValid = await bcrypt.compare(password, user.password).catch(() => false);
       if (isValid) return user;
+      
+      // Try bcrypt comparison with decoded Base64 password
+      try {
+        const decoded = Buffer.from(password, 'base64').toString('utf8');
+        const isValidDecoded = await bcrypt.compare(decoded, user.password).catch(() => false);
+        if (isValidDecoded) return user;
+      } catch {}
     }
 
-    // Plain text comparison
+    // Plain text comparison (both plaintext and Base64)
     if (user.password === password) {
       return user;
     }
-
-    // Base64 encoded password (frontend sends Base64)
-    const encodedPwd = Buffer.from(password).toString('base64');
-    if (user.password === encodedPwd) {
-      return user;
-    }
+    
+    // Try decoded Base64 password
+    try {
+      const decoded = Buffer.from(password, 'base64').toString('utf8');
+      if (user.password === decoded) {
+        return user;
+      }
+    } catch {}
 
     return null;
   }
