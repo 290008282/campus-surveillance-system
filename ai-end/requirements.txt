@@ -1,41 +1,39 @@
-# CPU-only PyTorch
-torch==2.5.1+cpu
+# CPU-only PyTorch (compatible versions)
+torch==2.6.0+cpu
 torchvision==0.21.0+cpu
 --extra-index-url https://download.pytorch.org/whl/cpu
 
 # YOLO
-ultralytics>=8.0.0
+ultralytics
 
 # Web framework
-aiohttp>=3.8.0
-python-socketio>=5.8.0
-python-engineio>=4.4.0
+python-socketio
+python-engineio
 
 # Image/Video processing
-opencv-python>=4.7.0
-pillow>=10.0.0
-ffmpeg-python>=0.2.0
+opencv-python
+pillow
+ffmpeg-python
 
 # Data processing
-numpy>=1.23.0
-pandas>=2.0.0
-scipy>=1.10.0
-sympy>=1.11.0
+numpy
+pandas
+scipy
+sympy
 
 # Visualization
-matplotlib>=3.7.0
-seaborn>=0.12.0
+matplotlib
+seaborn
 
 # Utilities
-pyyaml>=6.0
-tqdm>=4.65.0
-psutil>=5.9.0
-packaging>=23.0
-python-dateutil>=2.8.0
-pytz>=2023.0
+pyyaml
+tqdm
+psutil
+python-dateutil
+pytz
 
 # Sentry
-sentry-sdk>=1.19.0
+sentry-sdk
 
 # thop
 thop
