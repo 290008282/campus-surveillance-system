@@ -32,7 +32,7 @@ export class UserService {
     if (!user) return null;
 
     // Try bcrypt first (new password format)
-    if (user.password.startsWith('$2') || user.password.startsWith('$')) {
+    if (user.password.startsWith('$')) {
       const isValid = await bcrypt.compare(password, user.password).catch(() => false);
       if (isValid) return user;
     }
