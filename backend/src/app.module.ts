@@ -29,7 +29,7 @@ import * as bcrypt from 'bcryptjs';
       }),
     }),
     TypeOrmModule.forFeature([User, AlarmRule, MapConfig]),
-    CacheModule.register({ isGlobal: true, ttl: 0, max: 0 }),
+    CacheModule.register({ isGlobal: true, ttl: 5000, max: 100 }),
     ServeStaticModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => [
