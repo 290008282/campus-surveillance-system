@@ -6,6 +6,13 @@ import { JwtService } from '@nestjs/jwt';
 import { Cache } from 'cache-manager';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import * as bcrypt from 'bcryptjs';
+import * as crypto from 'crypto';
+
+const HMAC_KEY = 'campus-surveillance-system';
+
+function hmacSha256(text: string): string {
+  return crypto.createHmac('sha256', HMAC_KEY).update(text).digest('base64');
+}
 
 @Injectable()
 export class UserService {
@@ -25,39 +32,33 @@ export class UserService {
     const user = await this.userRepo.findOne({ where: { username } });
     if (!user) return null;
 
-    // If stored password starts with $, it's bcrypt hashed
+    // If stored password is bcrypt hashed
     if (user.password.startsWith('$')) {
-      // Try bcrypt comparison with plaintext password
+      // Frontend sends HMAC-SHA256(password, key) as Base64, try direct compare
       const isValid = await bcrypt.compare(password, user.password).catch(() => false);
       if (isValid) return user;
-      
-      // Try bcrypt comparison with decoded Base64 password
-      try {
-        const decoded = Buffer.from(password, 'base64').toString('utf8');
-        const isValidDecoded = await bcrypt.compare(decoded, user.password).catch(() => false);
-        if (isValidDecoded) return user;
-      } catch {}
+
+      // Fallback: password might be plaintext, compute HMAC and compare
+      const hmacResult = hmacSha256(password);
+      const isValidHmac = await bcrypt.compare(hmacResult, user.password).catch(() => false);
+      if (isValidHmac) return user;
+
+      // Fallback: try plaintext with bcrypt
+      const isValidPlain = await bcrypt.compare(password, user.password).catch(() => false);
+      if (isValidPlain) return user;
     }
 
-    // Plain text comparison (both plaintext and Base64)
-    if (user.password === password) {
-      return user;
-    }
-    
-    // Try decoded Base64 password
-    try {
-      const decoded = Buffer.from(password, 'base64').toString('utf8');
-      if (user.password === decoded) {
-        return user;
-      }
-    } catch {}
+    // Plain text comparison
+    if (user.password === password) return user;
+    if (user.password === hmacSha256(password)) return user;
 
     return null;
   }
 
   async createUser(userData: Partial<User>): Promise<User> {
     if (!userData.password) throw new Error('Password required');
-    const hashedPassword = await bcrypt.hash(userData.password, 10);
+    const hmacResult = hmacSha256(userData.password);
+    const hashedPassword = await bcrypt.hash(hmacResult, 10);
     return await this.userRepo.save({
       ...userData,
       password: hashedPassword,
@@ -77,14 +78,16 @@ export class UserService {
   async updateUser(user: Partial<User>) {
     if (!user.username) return;
     if (user.password && !user.password.startsWith('$2')) {
-      user.password = await bcrypt.hash(user.password, 10);
+      const hmacResult = hmacSha256(user.password);
+      user.password = await bcrypt.hash(hmacResult, 10);
     }
     await this.userRepo.update({ username: user.username }, user);
   }
 
   async addUser(user: Partial<User>) {
     if (user.password && !user.password.startsWith('$2')) {
-      user.password = await bcrypt.hash(user.password, 10);
+      const hmacResult = hmacSha256(user.password);
+      user.password = await bcrypt.hash(hmacResult, 10);
     }
     return await this.userRepo.save(user);
   }
