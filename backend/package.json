@@ -30,7 +30,7 @@
     "@nestjs/serve-static": "^3.0.1",
     "@nestjs/typeorm": "^9.0.1",
     "@nestjs/websockets": "^9.4.0",
-    "bcrypt": "^5.1.1",
+    "bcryptjs": "^3.0.2",
     "cache-manager": "^5.2.1",
     "dayjs": "^1.11.7",
     "fs-extra": "^11.1.1",
