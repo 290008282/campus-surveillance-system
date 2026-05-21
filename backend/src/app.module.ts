@@ -9,6 +9,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { User } from './services/user/user.entity';
 import { AlarmRule } from './services/alarm-rule/alarm-rule.entity';
 import { MapConfig } from './services/map-config/map-config.entity';
+import { Camera } from './services/camera/camera.entity';
 import * as bcrypt from 'bcryptjs';
 
 @Module({
@@ -69,7 +70,7 @@ export class AppModule {
         port: parseInt(process.env.MYSQL_PORT || '3306'),
         username: process.env.MYSQL_USER || 'root',
         password: process.env.MYSQL_PASSWORD || 'root',
-        entities: [User, AlarmRule, MapConfig],
+        entities: [User, AlarmRule, MapConfig, Camera],
         synchronize: true,
       });
 
@@ -93,9 +94,8 @@ export class AppModule {
       const rulesCount = await dataSource.getRepository(AlarmRule).count();
       if (rulesCount === 0) {
         await dataSource.getRepository(AlarmRule).save([
-          { name: 'Face Detection', description: 'Detect faces in camera', model_class: 'person', confidence_threshold: 0.6, enabled: true },
-          { name: 'Vehicle Detection', description: 'Detect vehicles', model_class: 'car', confidence_threshold: 0.5, enabled: true },
-          { name: 'Anomaly Detection', description: 'Detect abnormal behavior', model_class: 'anomaly', confidence_threshold: 0.7, enabled: true },
+          { name: 'Body Detection', enabled: true, algorithmType: 'body', triggerDayOfWeek: [1,2,3,4,5,6,7], triggerTimeStart: '00:00', triggerTimeEnd: '23:59', triggerCountMin: 1, triggerCountMax: 100 },
+          { name: 'Vehicle Detection', enabled: true, algorithmType: 'vehicle', triggerDayOfWeek: [1,2,3,4,5,6,7], triggerTimeStart: '00:00', triggerTimeEnd: '23:59', triggerCountMin: 1, triggerCountMax: 100 },
         ]);
         console.log('[Init] Default alarm rules created');
       }
