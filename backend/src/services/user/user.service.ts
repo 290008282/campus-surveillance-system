@@ -21,33 +21,30 @@ export class UserService {
     });
   }
 
-  /**
-   * User login validation
-   * Supports both:
-   * 1. bcrypt hash verification (new users)
-   * 2. Plain text password (legacy data)
-   */
   async authLogin(username: string, password: string): Promise<User | null> {
     const user = await this.userRepo.findOne({ where: { username } });
     if (!user) return null;
 
-    // Try bcrypt first (new password format)
+    // bcrypt verification
     if (user.password.startsWith('$')) {
       const isValid = await bcrypt.compare(password, user.password).catch(() => false);
       if (isValid) return user;
     }
 
-    // Legacy: plain text password comparison
+    // Plain text comparison
     if (user.password === password) {
+      return user;
+    }
+
+    // Base64 encoded password (frontend sends Base64)
+    const encodedPwd = Buffer.from(password).toString('base64');
+    if (user.password === encodedPwd) {
       return user;
     }
 
     return null;
   }
 
-  /**
-   * Create user (auto hash password)
-   */
   async createUser(userData: Partial<User>): Promise<User> {
     if (!userData.password) throw new Error('Password required');
     const hashedPassword = await bcrypt.hash(userData.password, 10);
@@ -69,12 +66,9 @@ export class UserService {
 
   async updateUser(user: Partial<User>) {
     if (!user.username) return;
-    
-    // Hash password if updating
     if (user.password && !user.password.startsWith('$2')) {
       user.password = await bcrypt.hash(user.password, 10);
     }
-    
     await this.userRepo.update({ username: user.username }, user);
   }
 
