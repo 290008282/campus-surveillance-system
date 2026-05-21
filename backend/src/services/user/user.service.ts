@@ -49,6 +49,7 @@ export class UserService {
    * Create user (auto hash password)
    */
   async createUser(userData: Partial<User>): Promise<User> {
+    if (!userData.password) throw new Error('Password required');
     const hashedPassword = await bcrypt.hash(userData.password, 10);
     return await this.userRepo.save({
       ...userData,
