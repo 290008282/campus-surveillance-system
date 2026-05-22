@@ -94,7 +94,7 @@ class WSClient:
             }
         )
         await self.sio.connect(
-            self.wsServerUrl, socketio_path="/ws/ai/", headers={"data": data}
+            self.wsServerUrl, socketio_path="/ws/ai/socket.io", headers={"data": data}
         )
         self.connected = True
         pass
