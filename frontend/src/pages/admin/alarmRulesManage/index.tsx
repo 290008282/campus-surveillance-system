@@ -101,8 +101,12 @@ const AlarmRulesManage: FC = () => {
         time: {
           ...data.triggerCondition.time,
           timeRange: [
-            dayjs(data.triggerCondition.time.timeRange[0], 'HH:mm:ss'),
-            dayjs(data.triggerCondition.time.timeRange[1], 'HH:mm:ss'),
+            (data.triggerCondition?.time?.timeRange?.[0] && data.triggerCondition.time.timeRange[0] !== "Invalid Date")
+              ? dayjs(data.triggerCondition.time.timeRange[0], "HH:mm:ss")
+              : dayjs("09:00:00", "HH:mm:ss"),
+            (data.triggerCondition?.time?.timeRange?.[1] && data.triggerCondition.time.timeRange[1] !== "Invalid Date")
+              ? dayjs(data.triggerCondition.time.timeRange[1], "HH:mm:ss")
+              : dayjs("18:00:00", "HH:mm:ss"),
           ],
         },
       },
