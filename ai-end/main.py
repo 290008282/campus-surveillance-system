@@ -27,7 +27,8 @@ def getOfflineCameraIDs(httpServerUrl, adminUsername, password):
     return list(map(lambda x: x["cameraID"], res["data"]))
 
 
-def ffmpegStreamToRtmpServer(streamUrl: str, rtmpUrl: str):
+def ffmpegStreamToRtmpServer(streamUrl: str, rtmpUrl: str, max_retries=5, retry_interval=3):
+    import subprocess, time as _time
     print("exec ffmpeg...")
     cmd = [
         "/usr/bin/ffmpeg", "-hide_banner", "-loglevel", "error",
@@ -37,7 +38,8 @@ def ffmpegStreamToRtmpServer(streamUrl: str, rtmpUrl: str):
         "-c:v", "libx264", "-preset:v", "ultrafast", "-tune:v", "zerolatency",
         "-g", "15", "-keyint_min", "15", "-sc_threshold", "0",
         "-b:v", "1000k", "-maxrate", "1500k", "-bufsize", "2000k",
-        "-f", "flv", "-c:a", "copy", rtmpUrl
+        "-f", "flv", "-reconnect", "1", "-reconnect_streamed", "1", "-reconnect_delay_max", "5",
+        "-c:a", "copy", rtmpUrl
     ] if streamUrl.startswith("rtsp") else [
         "/usr/bin/ffmpeg", "-hide_banner", "-loglevel", "error",
         "-fflags", "nobuffer", "-flags", "low_delay",
@@ -45,9 +47,18 @@ def ffmpegStreamToRtmpServer(streamUrl: str, rtmpUrl: str):
         "-c:v", "libx264", "-preset:v", "ultrafast", "-tune:v", "zerolatency",
         "-g", "15", "-keyint_min", "15", "-sc_threshold", "0",
         "-b:v", "1000k", "-maxrate", "1500k", "-bufsize", "2000k",
-        "-f", "flv", "-c:a", "copy", rtmpUrl
+        "-f", "flv", "-reconnect", "1", "-reconnect_streamed", "1", "-reconnect_delay_max", "5",
+        "-c:a", "copy", rtmpUrl
     ]
-    os.execvp(cmd[0], cmd)
+    for attempt in range(max_retries):
+        try:
+            os.execvp(cmd[0], cmd)
+        except Exception as e:
+            if attempt < max_retries - 1:
+                print(f"ffmpeg attempt {attempt + 1}/{max_retries} failed ({e}), retrying in {retry_interval}s...")
+                _time.sleep(retry_interval)
+            else:
+                raise
 
 
 async def beginWork(ws: WSClient):
