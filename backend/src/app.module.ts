@@ -38,7 +38,7 @@ function hmacSha256(text: string): string {
       }),
     }),
     TypeOrmModule.forFeature([User, AlarmRule, MapConfig]),
-    CacheModule.register({ isGlobal: true, ttl: 5000, max: 100 }),
+    CacheModule.register({ isGlobal: true, ttl: 86400000, max: 100 }),
     ServeStaticModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => [
