@@ -54,7 +54,7 @@ async def beginWork(ws: WSClient):
         print(
             f"Begin to detect video for camera {ws.cameraID}, streamUrl: {ws.rtspUrl} \nIf wait too long, please check if the stream url is correct."
         )
-        results = model.detectVideo(ws.rtspUrl, classList=[0, 2])  # 0:person, 2:car
+        results = model.detectVideo(ws.rtspUrl, classList=[0, 2])
         for frameResult in results:
             clsCount = model.getResultClsCount(frameResult)
             await ws.trySendAlarm(
@@ -89,8 +89,8 @@ def main(
 if __name__ == "__main__":
     multiprocessing.freeze_support()
     httpServerUrl = os.getenv("HTTP_SERVER_URL", "http://localhost")
-    # FIX: path must match NestJS gateway path '/ws/ai/'
-    wsServerUrl = httpServerUrl + "/ws/ai"
+    # FIX: pass base URL only; socketio_path in wsClient.py handles the rest
+    wsServerUrl = httpServerUrl
     rtmpServerUrl = os.getenv("RTMP_SERVER_URL", "rtmp://localhost:1515/live")
     adminUsername = os.getenv("ADMIN_USERNAME", "admin")
     password = os.getenv("ADMIN_PASSWORD", "admin")
