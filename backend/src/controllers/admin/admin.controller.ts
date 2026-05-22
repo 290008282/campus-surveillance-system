@@ -153,7 +153,10 @@ export class AdminController {
       triggerCondition: {
         time: {
           dayOfWeek: rule.triggerDayOfWeek,
-          timeRange: [rule.triggerTimeStart, rule.triggerTimeEnd],
+          timeRange: [
+            (rule.triggerTimeStart && !['Invalid Date', '', 'null'].includes(rule.triggerTimeStart)) ? rule.triggerTimeStart : '09:00:00',
+            (rule.triggerTimeEnd && !['Invalid Date', '', 'null'].includes(rule.triggerTimeEnd)) ? rule.triggerTimeEnd : '18:00:00',
+          ],
         },
         count: {
           min: rule.triggerCountMin,
