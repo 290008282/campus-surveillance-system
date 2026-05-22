@@ -119,10 +119,15 @@ class WSClient:
             return matchedRules
         # Parse time with forgiving format (handle both "HH:MM:SS" and "HH:MM")
         def _parse_time(t):
-            parts = t.split(":")
-            if len(parts) == 2:
-                t += ":00"
-            return datetime.strptime(t, "%H:%M:%S").time()
+            try:
+                if not t or t in ("Invalid Date", "", "null", "None"):
+                    return datetime.min.time()
+                parts = t.split(":")
+                if len(parts) == 2:
+                    t += ":00"
+                return datetime.strptime(t, "%H:%M:%S").time()
+            except (ValueError, TypeError):
+                return datetime.min.time()
 
         for rule in self.alarmRules:
             if (
