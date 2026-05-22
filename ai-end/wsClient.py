@@ -130,9 +130,9 @@ class WSClient:
                 and rule["algorithmType"] == data["algorithmType"]
                 and (datetime.now().weekday() + 1) in rule["triggerDayOfWeek"]
                 and datetime.now().time()
-                >= _parse_time(rule["triggerTimeStart"]).time()
+                >= _parse_time(rule["triggerTimeStart"])
                 and datetime.now().time()
-                <= _parse_time(rule["triggerTimeEnd"]).time()
+                <= _parse_time(rule["triggerTimeEnd"])
                 and data["count"] >= rule["triggerCountMin"]
                 and (
                     data["count"] <= rule["triggerCountMax"]
