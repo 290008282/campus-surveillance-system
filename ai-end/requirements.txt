@@ -9,6 +9,7 @@ ultralytics
 # Web framework
 python-socketio
 python-engineio
+aiohttp
 
 # Image/Video processing
 opencv-python
@@ -31,10 +32,10 @@ tqdm
 psutil
 python-dateutil
 pytz
+requests
 
 # Sentry
 sentry-sdk
 
 # thop
 thop
-requests
