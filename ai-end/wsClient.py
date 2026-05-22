@@ -117,15 +117,22 @@ class WSClient:
             raise Exception(f"CameraID {self.cameraID} not ready or disconnected")
         if self.alarmRules is None:
             return matchedRules
+        # Parse time with forgiving format (handle both "HH:MM:SS" and "HH:MM")
+        def _parse_time(t):
+            parts = t.split(":")
+            if len(parts) == 2:
+                t += ":00"
+            return datetime.strptime(t, "%H:%M:%S").time()
+
         for rule in self.alarmRules:
             if (
                 rule["enabled"]
                 and rule["algorithmType"] == data["algorithmType"]
                 and (datetime.now().weekday() + 1) in rule["triggerDayOfWeek"]
                 and datetime.now().time()
-                >= datetime.strptime(rule["triggerTimeStart"], "%H:%M:%S").time()
+                >= _parse_time(rule["triggerTimeStart"]).time()
                 and datetime.now().time()
-                <= datetime.strptime(rule["triggerTimeEnd"], "%H:%M:%S").time()
+                <= _parse_time(rule["triggerTimeEnd"]).time()
                 and data["count"] >= rule["triggerCountMin"]
                 and (
                     data["count"] <= rule["triggerCountMax"]
