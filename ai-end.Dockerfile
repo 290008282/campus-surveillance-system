@@ -4,13 +4,13 @@ ENV TZ=Asia/Shanghai
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     dpkg-reconfigure -f noninteractive tzdata
 
-# Force Aliyun mirror and disable slow sources
-RUN echo 'deb http://mirrors.aliyun.com/debian/ bullseye main' > /etc/apt/sources.list && \
-    echo 'deb http://mirrors.aliyun.com/debian/ bullseye-updates main' >> /etc/apt/sources.list && \
-    echo 'deb http://mirrors.aliyun.com/debian-security/ bullseye-security main' >> /etc/apt/sources.list && \
+# Use Aliyun mirror for bookworm (Debian 12, which python:3.10-slim is based on)
+RUN echo 'deb http://mirrors.aliyun.com/debian/ bookworm main' > /etc/apt/sources.list && \
+    echo 'deb http://mirrors.aliyun.com/debian/ bookworm-updates main' >> /etc/apt/sources.list && \
+    echo 'deb http://mirrors.aliyun.com/debian-security/ bookworm-security main' >> /etc/apt/sources.list && \
     rm -f /etc/apt/sources.list.d/*.sources 2>/dev/null; true
 
-# Install ffmpeg and dependencies (with timeout to avoid hanging)
+# Install ffmpeg and dependencies
 RUN apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=10 && \
     apt-get install -y --no-install-recommends \
     ffmpeg libsm6 libxext6 libxrender1 libgomp1 \
