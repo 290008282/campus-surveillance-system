@@ -5,10 +5,16 @@ RUN echo $TZ > /etc/timezone && \
   ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
   dpkg-reconfigure -f noninteractive tzdata
 
+# Use Aliyun mirror for apt (bookworm)
+RUN echo 'deb http://mirrors.aliyun.com/debian/ bookworm main' > /etc/apt/sources.list && \
+    echo 'deb http://mirrors.aliyun.com/debian/ bookworm-updates main' >> /etc/apt/sources.list && \
+    echo 'deb http://mirrors.aliyun.com/debian-security/ bookworm-security main' >> /etc/apt/sources.list && \
+    rm -f /etc/apt/sources.list.d/*.sources 2>/dev/null; true
+
 # Install nginx + rtmp
-RUN sed -i 's|http://deb.debian.org/debian/|http://mirrors.aliyun.com/debian/|g' /etc/apt/sources.list 2>/dev/null || true \
-    && apt-get update && apt-get install -y nginx libnginx-mod-rtmp && \
-  rm -f /etc/nginx/nginx.conf
+RUN apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=10 && \
+    apt-get install -y --no-install-recommends nginx libnginx-mod-rtmp && \
+    rm -f /etc/nginx/nginx.conf
 
 # Build frontend
 COPY ./frontend /usr/share/campus-surveillance-system/frontend
