@@ -31,14 +31,21 @@ def ffmpegStreamToRtmpServer(streamUrl: str, rtmpUrl: str):
     print("exec ffmpeg...")
     cmd = [
         "/usr/bin/ffmpeg", "-hide_banner", "-loglevel", "error",
-        "-rtsp_transport", "tcp", "-i", streamUrl,
-        "-c:v", "libx264", "-preset:v", "ultrafast", "-tune:v", "zerolatency",
-        "-g", "30", "-f:v", "flv", "-c:a", "copy", rtmpUrl
-    ] if streamUrl.startswith("rtsp") else [
-        "/usr/bin/ffmpeg", "-hide_banner", "-loglevel", "error",
+        "-fflags", "nobuffer", "-flags", "low_delay",
+        "-rtsp_transport", "tcp", "-stimeout", "5000000",
         "-i", streamUrl,
         "-c:v", "libx264", "-preset:v", "ultrafast", "-tune:v", "zerolatency",
-        "-g", "30", "-f:v", "flv", "-c:a", "copy", rtmpUrl
+        "-g", "15", "-keyint_min", "15", "-sc_threshold", "0",
+        "-b:v", "1000k", "-maxrate", "1500k", "-bufsize", "2000k",
+        "-f", "flv", "-c:a", "copy", rtmpUrl
+    ] if streamUrl.startswith("rtsp") else [
+        "/usr/bin/ffmpeg", "-hide_banner", "-loglevel", "error",
+        "-fflags", "nobuffer", "-flags", "low_delay",
+        "-i", streamUrl,
+        "-c:v", "libx264", "-preset:v", "ultrafast", "-tune:v", "zerolatency",
+        "-g", "15", "-keyint_min", "15", "-sc_threshold", "0",
+        "-b:v", "1000k", "-maxrate", "1500k", "-bufsize", "2000k",
+        "-f", "flv", "-c:a", "copy", rtmpUrl
     ]
     os.execvp(cmd[0], cmd)
 
