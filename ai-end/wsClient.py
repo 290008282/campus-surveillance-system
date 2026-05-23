@@ -30,13 +30,13 @@ class WSClient:
     """
     @type alarmRule: [{
         'id': 1,
-        'name': '测试规则',
-        'enabled': True, 
-        'algorithmType':'body', 
-        'triggerDayOfWeek': [1, 2, 3, 4, 5], 
-        'triggerTimeStart': '09:00:00', 
-        'triggerTimeEnd': '18:00:00', 
-        'triggerCountMin': 0, 
+        'name': 'Test Rule',
+        'enabled': True,
+        'algorithmType':'body',
+        'triggerDayOfWeek': [1, 2, 3, 4, 5],
+        'triggerTimeStart': '09:00:00',
+        'triggerTimeEnd': '18:00:00',
+        'triggerCountMin': 0,
         'triggerCountMax': -1
         }]
     """
@@ -117,14 +117,15 @@ class WSClient:
             raise Exception(f"CameraID {self.cameraID} not ready or disconnected")
         if self.alarmRules is None:
             return matchedRules
-        # Parse time with forgiving format (handle both "HH:MM:SS" and "HH:MM")
+
         def _parse_time(t):
+            """Parse time string, handling invalid values gracefully."""
+            if not t or t in ("Invalid Date", "null", "None", "undefined"):
+                return datetime.min.time()
+            parts = str(t).split(":")
+            if len(parts) == 2:
+                t += ":00"
             try:
-                if not t or t in ("Invalid Date", "", "null", "None"):
-                    return datetime.min.time()
-                parts = t.split(":")
-                if len(parts) == 2:
-                    t += ":00"
                 return datetime.strptime(t, "%H:%M:%S").time()
             except (ValueError, TypeError):
                 return datetime.min.time()
@@ -162,12 +163,6 @@ class WSClient:
         """
         rules = self.matchAlarmRule(data)
         for rule in rules:
-            """
-            AlarmData: {
-                picBase64: string;
-                alarmRuleID: number;
-            }
-            """
             await self.sio.emit(
                 "alarm",
                 {
@@ -178,7 +173,6 @@ class WSClient:
                     ).decode("utf-8"),
                 },
             )
-            # 防止短时间内重复发送
             self.alarmThrottle[rule["id"]] = datetime.now()
             print(f"camera {self.cameraID} alarm sent: {rule['name']}")
             pass
