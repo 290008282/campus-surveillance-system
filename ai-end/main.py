@@ -3,6 +3,7 @@ from wsClient import WSClient
 import asyncio
 import multiprocessing
 import os
+import time
 import requests
 import base64
 import hashlib
@@ -89,16 +90,34 @@ def main(
 if __name__ == "__main__":
     multiprocessing.freeze_support()
     httpServerUrl = os.getenv("HTTP_SERVER_URL", "http://localhost")
-    # FIX: pass base URL only; socketio_path in wsClient.py handles the rest
     wsServerUrl = httpServerUrl
     rtmpServerUrl = os.getenv("RTMP_SERVER_URL", "rtmp://localhost:1515/live")
     adminUsername = os.getenv("ADMIN_USERNAME", "admin")
     password = os.getenv("ADMIN_PASSWORD", "admin")
+
+    # Retry loop: keep polling for offline cameras instead of exiting
+    RETRY_INTERVAL = 30
     cameraIDs = []
-    if os.getenv("CAMERA_IDS") is not None:
-        cameraIDs = os.getenv("CAMERA_IDS").split(",")
-    else:
-        cameraIDs = getOfflineCameraIDs(httpServerUrl, adminUsername, password)
+
+    while True:
+        try:
+            if os.getenv("CAMERA_IDS") is not None:
+                cameraIDs = os.getenv("CAMERA_IDS").split(",")
+                break
+
+            cameraIDs = getOfflineCameraIDs(httpServerUrl, adminUsername, password)
+
+            if not cameraIDs:
+                print(f"No offline cameras found. Retrying in {RETRY_INTERVAL}s...")
+                time.sleep(RETRY_INTERVAL)
+                continue
+
+            break
+        except Exception as e:
+            print(f"Error getting camera list: {e}. Retrying in {RETRY_INTERVAL}s...")
+            time.sleep(RETRY_INTERVAL)
+
+    print(f"Found {len(cameraIDs)} camera(s): {cameraIDs}")
     detectionInterval = float(os.getenv("DETECTION_INTERVAL", 0.5))
     modelDevice = os.getenv("MODEL_DEVICE", "cpu")
     processes = []
