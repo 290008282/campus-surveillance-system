@@ -80,7 +80,11 @@ export class AppModule {
       });
 
       await dataSource.initialize();
-      
+
+      // Reset all cameras to offline on startup (ai-end will reconnect)
+      await dataSource.getRepository(Camera).update({}, { online: false });
+      console.log('[Init] Reset all cameras to offline status');
+
       const adminExists = await dataSource.getRepository(User).findOne({
         where: { username: 'admin' }
       });
