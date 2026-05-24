@@ -33,15 +33,31 @@ def ffmpegStreamToRtmpServer(streamUrl: str, rtmpUrl: str):
     cmd = [
         "/usr/bin/ffmpeg", "-hide_banner", "-loglevel", "error",
         "-rtsp_transport", "tcp", "-i", streamUrl,
+        "-an",
         "-c:v", "libx264", "-preset:v", "ultrafast", "-tune:v", "zerolatency",
-        "-g", "30", "-f:v", "flv", "-c:a", "copy", rtmpUrl
+        "-g", "30", "-f:v", "flv", rtmpUrl
     ] if streamUrl.startswith("rtsp") else [
         "/usr/bin/ffmpeg", "-hide_banner", "-loglevel", "error",
         "-i", streamUrl,
+        "-an",
         "-c:v", "libx264", "-preset:v", "ultrafast", "-tune:v", "zerolatency",
-        "-g", "30", "-f:v", "flv", "-c:a", "copy", rtmpUrl
+        "-g", "30", "-f:v", "flv", rtmpUrl
     ]
     os.execvp(cmd[0], cmd)
+
+
+async def monitorCameraProcess(ws: WSClient, ffmpegProcess: multiprocessing.Process):
+    """Monitor FFmpeg process and restart if it dies"""
+    while True:
+        await asyncio.sleep(5)
+        if not ffmpegProcess.is_alive():
+            print(f"FFmpeg process for camera {ws.cameraID} died, restarting...")
+            ffmpegProcess.terminate()
+            newProcess = multiprocessing.Process(
+                target=ffmpegStreamToRtmpServer, args=(ws.rtspUrl, ws.rtmpServerUrl + "/" + ws.cameraID), daemon=True
+            )
+            newProcess.start()
+            ffmpegProcess = newProcess
 
 
 async def beginWork(ws: WSClient):
@@ -55,6 +71,10 @@ async def beginWork(ws: WSClient):
         print(
             f"Begin to detect video for camera {ws.cameraID}, streamUrl: {ws.rtspUrl} \nIf wait too long, please check if the stream url is correct."
         )
+
+        # Start monitor task
+        monitorTask = asyncio.create_task(monitorCameraProcess(ws, ffmpegProcess))
+
         results = model.detectVideo(ws.rtspUrl, classList=[0, 2])
         for frameResult in results:
             clsCount = model.getResultClsCount(frameResult)
@@ -68,6 +88,10 @@ async def beginWork(ws: WSClient):
                 print(f"ffmpeg process for camera {ws.cameraID} is dead")
                 break
             await asyncio.sleep(float(ws.context.get("interval", 1)))
+
+        monitorTask.cancel()
+    except asyncio.CancelledError:
+        pass
     finally:
         ffmpegProcess.kill()
         await ws.disconnect()
@@ -89,9 +113,9 @@ def main(
 
 if __name__ == "__main__":
     multiprocessing.freeze_support()
-    httpServerUrl = os.getenv("HTTP_SERVER_URL", "http://localhost")
+    httpServerUrl = os.getenv("HTTP_SERVER_URL", "http://front-backend:3000")
     wsServerUrl = httpServerUrl
-    rtmpServerUrl = os.getenv("RTMP_SERVER_URL", "rtmp://localhost:1515/live")
+    rtmpServerUrl = os.getenv("RTMP_SERVER_URL", "rtmp://front-backend:1515/live")
     adminUsername = os.getenv("ADMIN_USERNAME", "admin")
     password = os.getenv("ADMIN_PASSWORD", "admin")
 
