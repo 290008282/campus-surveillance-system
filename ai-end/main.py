@@ -34,12 +34,12 @@ def ffmpegStreamToRtmpServer(streamUrl: str, rtmpUrl: str):
         "/usr/bin/ffmpeg", "-hide_banner", "-loglevel", "error",
         "-rtsp_transport", "tcp", "-i", streamUrl,
         "-c:v", "libx264", "-preset:v", "ultrafast", "-tune:v", "zerolatency",
-        "-g", "30", "-f:v", "flv", "-c:a", "copy", rtmpUrl
+        "-g", "30", "-f:v", "flv", "-an", rtmpUrl
     ] if streamUrl.startswith("rtsp") else [
         "/usr/bin/ffmpeg", "-hide_banner", "-loglevel", "error",
         "-i", streamUrl,
         "-c:v", "libx264", "-preset:v", "ultrafast", "-tune:v", "zerolatency",
-        "-g", "30", "-f:v", "flv", "-c:a", "copy", rtmpUrl
+        "-g", "30", "-f:v", "flv", "-an", rtmpUrl
     ]
     os.execvp(cmd[0], cmd)
 
@@ -129,5 +129,18 @@ if __name__ == "__main__":
         )
         p.start()
         processes.append(p)
-    for p in processes:
-        p.join()
+
+    # Keep monitoring: restart dead processes
+    while True:
+        for i, p in enumerate(processes):
+            if not p.is_alive():
+                cameraID = cameraIDs[i]
+                print(f"Process for camera {cameraID} died, restarting...")
+                p_new = multiprocessing.Process(
+                    target=main,
+                    args=(wsServerUrl, rtmpServerUrl, adminUsername, password,
+                          cameraID, detectionInterval, modelDevice),
+                )
+                p_new.start()
+                processes[i] = p_new
+        time.sleep(5)
