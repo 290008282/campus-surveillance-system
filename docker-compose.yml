@@ -23,6 +23,7 @@ services:
       context: .
       dockerfile: front-backend.Dockerfile
     container_name: campus-front-backend
+    shm_size: '512m'
     environment:
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306
