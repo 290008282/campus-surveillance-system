@@ -1,4 +1,4 @@
-from model import YOLOModel
+﻿from model import YOLOModel
 from wsClient import WSClient
 import asyncio
 import multiprocessing
@@ -91,7 +91,7 @@ if __name__ == "__main__":
     multiprocessing.freeze_support()
     httpServerUrl = os.getenv("HTTP_SERVER_URL", "http://localhost")
     wsServerUrl = httpServerUrl
-    rtmpServerUrl = os.getenv("RTMP_SERVER_URL", "rtmp://localhost:1515/live")
+    rtmpServerUrl = os.getenv("RTMP_SERVER_URL", "rtmp://front-backend:1515/live")
     adminUsername = os.getenv("ADMIN_USERNAME", "admin")
     password = os.getenv("ADMIN_PASSWORD", "admin")
 
