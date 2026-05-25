@@ -420,7 +420,18 @@ export interface FetchTypes {
       message: string;
       success: boolean;
     };
-  };
+  }
+
+  'GET /api/ai/getAllCameraList': {
+    req: {
+      adminUsername: string;
+      password: string;
+    };
+    res: {
+      success: true;
+      data: Array<{ cameraID: number }>;
+    };
+  };;
 }
 
 export type fetchUrls = keyof FetchTypes extends `${string} ${infer Url}`

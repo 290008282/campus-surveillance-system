@@ -58,5 +58,22 @@ export class CommonController {
     return list.map((camera) => ({
       cameraID: camera.id,
     }));
+
+
+  @Get('/api/ai/getAllCameraList')
+  async getAllCameraList(
+    @Query() data: FetchTypes['GET /api/ai/getAllCameraList']['req'],
+  ): Promise<FetchTypes['GET /api/ai/getAllCameraList']['res']['data']> {
+    const user = await this.userService.authLogin(
+      data.adminUsername,
+      data.password,
+    );
+    if (!user || user.role !== 'admin') throw new UnauthorizedException();
+
+    const list = await this.cameraService.getList();
+    return list.map((camera) => ({
+      cameraID: camera.id,
+    }));
+  }
   }
 }
