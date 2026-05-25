@@ -25,7 +25,7 @@ def getOfflineCameraIDs(httpServerUrl, adminUsername, password):
     if not res["success"]:
         raise Exception(res["message"])
 
-    return list(map(lambda x: x["cameraID"], res["data"]))
+    return [str(x["id"]) for x in res.get("data", [])]
 
 
 def ffmpegStreamToRtmpServer(streamUrl: str, rtmpUrl: str):
@@ -167,7 +167,7 @@ if __name__ == "__main__":
                 cameraIDs = os.getenv("CAMERA_IDS").split(",")
                 break
 
-            cameraIDs = getOfflineCameraIDs(httpServerUrl, adminUsername, password)
+            cameraIDs = getAllCameraIDs(httpServerUrl, adminUsername, password)
 
             if not cameraIDs:
                 print(f"No offline cameras found. Retrying in {RETRY_INTERVAL}s...")
