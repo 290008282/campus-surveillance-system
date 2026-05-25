@@ -1,4 +1,4 @@
-﻿from model import YOLOModel
+from model import YOLOModel
 from wsClient import WSClient
 import asyncio
 import multiprocessing
@@ -30,17 +30,27 @@ def getOfflineCameraIDs(httpServerUrl, adminUsername, password):
 
 def ffmpegStreamToRtmpServer(streamUrl: str, rtmpUrl: str):
     print("exec ffmpeg...")
-    cmd = [
-        "/usr/bin/ffmpeg", "-hide_banner", "-loglevel", "error",
-        "-rtsp_transport", "tcp", "-i", streamUrl,
-        "-c:v", "libx264", "-preset:v", "ultrafast", "-tune:v", "zerolatency",
-        "-g", "30", "-f:v", "flv", "-an", rtmpUrl
-    ] if streamUrl.startswith("rtsp") else [
-        "/usr/bin/ffmpeg", "-hide_banner", "-loglevel", "error",
-        "-i", streamUrl,
-        "-c:v", "libx264", "-preset:v", "ultrafast", "-tune:v", "zerolatency",
-        "-g", "30", "-f:v", "flv", "-an", rtmpUrl
+    extra = [
+        "-err_detect", "ignore_err",
+        "-fflags", "+discardcorrupt+genpts+igndts",
+        "-max_delay", "5000000",
+        "-reorder_queue_size", "10",
+        "-analyzeduration", "5000000",
+        "-probesize", "5000000",
     ]
+    cmd = (
+        ["/usr/bin/ffmpeg", "-hide_banner", "-loglevel", "error"]
+        + extra
+        + ["-rtsp_transport", "tcp", "-i", streamUrl,
+           "-c:v", "libx264", "-preset:v", "ultrafast", "-tune:v", "zerolatency",
+           "-g", "30", "-f:v", "flv", "-an", rtmpUrl]
+    ) if streamUrl.startswith("rtsp") else (
+        ["/usr/bin/ffmpeg", "-hide_banner", "-loglevel", "error"]
+        + extra
+        + ["-i", streamUrl,
+           "-c:v", "libx264", "-preset:v", "ultrafast", "-tune:v", "zerolatency",
+           "-g", "30", "-f:v", "flv", "-an", rtmpUrl]
+    )
     os.execvp(cmd[0], cmd)
 
 
@@ -52,22 +62,45 @@ async def beginWork(ws: WSClient):
         ffmpegProcess = None
         model = None
         try:
-            model = YOLOModel(device=ws.context.get("modelDevice", "cpu"))
-            ffmpegProcess = multiprocessing.Process(
-                target=ffmpegStreamToRtmpServer, args=(ws.rtspUrl, rtmpUrl), daemon=True
-            )
-            ffmpegProcess.start()
+            try:
+                model = YOLOModel(device=ws.context.get("modelDevice", "cpu"))
+            except Exception as e:
+                print(f"[Camera {ws.cameraID}] YOLOModel init failed: {e}, retrying in 10s...")
+                await asyncio.sleep(10)
+                continue
+
+            ffmpeg_started = False
+            for attempt in range(5):
+                try:
+                    ffmpegProcess = multiprocessing.Process(
+                        target=ffmpegStreamToRtmpServer, args=(ws.rtspUrl, rtmpUrl), daemon=True
+                    )
+                    ffmpegProcess.start()
+                    ffmpeg_started = True
+                    break
+                except Exception as e:
+                    wait = min(5 * (2 ** attempt), 60)
+                    print(f"[Camera {ws.cameraID}] FFmpeg launch failed (attempt {attempt+1}/5): {e}, retrying in {wait}s...")
+                    await asyncio.sleep(wait)
+
+            if not ffmpeg_started:
+                print(f"[Camera {ws.cameraID}] FFmpeg failed to start after 5 attempts, will retry...")
+                if model:
+                    del model
+                await asyncio.sleep(30)
+                continue
+
             print(
-                f"Begin to detect video for camera {ws.cameraID}, streamUrl: {ws.rtspUrl}\n"
+                f"Begin to detect video for camera {ws.cameraID}, streamUrl: {ws.rtspUrl}
+"
                 f"If wait too long, please check if the stream url is correct."
             )
 
             try:
                 results = model.detectVideo(ws.rtspUrl, classList=[0, 2])
                 for frameResult in results:
-                    # Check ffmpeg is still alive before processing each frame
                     if ffmpegProcess is not None and not ffmpegProcess.is_alive():
-                        print(f"ffmpeg process for camera {ws.cameraID} is dead, waiting for restart...")
+                        print(f"[Camera {ws.cameraID}] FFmpeg process died, waiting for restart...")
                         break
 
                     try:
@@ -78,19 +111,19 @@ async def beginWork(ws: WSClient):
                             {"algorithmType": "vehicle", "count": model.getResultClsCount(frameResult).get("car", 0), "predictResult": frameResult}
                         )
                     except Exception as e:
-                        print(f"Warning: alarm send failed for camera {ws.cameraID}: {e}")
+                        print(f"[Camera {ws.cameraID}] Alarm send failed: {e}")
 
                     await asyncio.sleep(detection_interval)
 
             except Exception as e:
-                print(f"YOLO detection error for camera {ws.cameraID}: {e}, retrying in 5s...")
+                print(f"[Camera {ws.cameraID}] YOLO detection error: {e}, retrying in 5s...")
             finally:
                 if ffmpegProcess is not None:
                     ffmpegProcess.kill()
                     ffmpegProcess.join(timeout=3)
 
         except Exception as e:
-            print(f"Fatal error for camera {ws.cameraID}: {e}, retrying in 5s...")
+            print(f"[Camera {ws.cameraID}] Fatal error: {e}, retrying in 5s...")
         finally:
             if ffmpegProcess is not None:
                 try:
@@ -103,8 +136,10 @@ async def beginWork(ws: WSClient):
                 except:
                     pass
 
-        print(f"Restarting detection for camera {ws.cameraID} in 5s...")
+        print(f"[Camera {ws.cameraID}] Restarting detection in 5s...")
         await asyncio.sleep(5)
+
+
 def main(
     wsServerUrl="", rtmpServerUrl="", adminUsername="", password="",
     cameraID="", detectionInterval=0.5, modelDevice="cpu",
@@ -126,7 +161,6 @@ if __name__ == "__main__":
     adminUsername = os.getenv("ADMIN_USERNAME", "admin")
     password = os.getenv("ADMIN_PASSWORD", "admin")
 
-    # Retry loop: keep polling for offline cameras instead of exiting
     RETRY_INTERVAL = 30
     cameraIDs = []
 
@@ -152,6 +186,7 @@ if __name__ == "__main__":
     detectionInterval = float(os.getenv("DETECTION_INTERVAL", 0.5))
     modelDevice = os.getenv("MODEL_DEVICE", "cpu")
     processes = []
+
     for cameraID in cameraIDs:
         p = multiprocessing.Process(
             target=main,
@@ -161,12 +196,18 @@ if __name__ == "__main__":
         p.start()
         processes.append(p)
 
-    # Keep monitoring: restart dead processes
+    restart_backoff = {i: 5 for i in range(len(cameraIDs))}
+    max_backoff = 300
+
     while True:
         for i, p in enumerate(processes):
             if not p.is_alive():
                 cameraID = cameraIDs[i]
-                print(f"Process for camera {cameraID} died, restarting...")
+                wait = restart_backoff[i]
+                print(f"[Camera {cameraID}] Process died (exit code: {p.exitcode}), restarting in {wait}s...")
+                time.sleep(wait)
+                restart_backoff[i] = min(wait * 2, max_backoff)
+
                 p_new = multiprocessing.Process(
                     target=main,
                     args=(wsServerUrl, rtmpServerUrl, adminUsername, password,
@@ -174,4 +215,6 @@ if __name__ == "__main__":
                 )
                 p_new.start()
                 processes[i] = p_new
+                print(f"[Camera {cameraID}] Process restarted (PID: {p_new.pid})")
+                restart_backoff[i] = 5
         time.sleep(5)
