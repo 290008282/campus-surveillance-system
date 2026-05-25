@@ -46,37 +46,66 @@ def ffmpegStreamToRtmpServer(streamUrl: str, rtmpUrl: str):
 
 async def beginWork(ws: WSClient):
     rtmpUrl = ws.rtmpServerUrl + "/" + ws.cameraID
-    ffmpegProcess = multiprocessing.Process(
-        target=ffmpegStreamToRtmpServer, args=(ws.rtspUrl, rtmpUrl), daemon=True
-    )
-    try:
-        model = YOLOModel(device=ws.context.get("modelDevice", "cpu"))
-        ffmpegProcess.start()
-        print(
-            f"Begin to detect video for camera {ws.cameraID}, streamUrl: {ws.rtspUrl} \nIf wait too long, please check if the stream url is correct."
-        )
-        results = model.detectVideo(ws.rtspUrl, classList=[0, 2])
-        for frameResult in results:
-            clsCount = model.getResultClsCount(frameResult)
+    detection_interval = float(ws.context.get("interval", 1))
+
+    while True:
+        ffmpegProcess = None
+        model = None
+        try:
+            model = YOLOModel(device=ws.context.get("modelDevice", "cpu"))
+            ffmpegProcess = multiprocessing.Process(
+                target=ffmpegStreamToRtmpServer, args=(ws.rtspUrl, rtmpUrl), daemon=True
+            )
+            ffmpegProcess.start()
+            print(
+                f"Begin to detect video for camera {ws.cameraID}, streamUrl: {ws.rtspUrl} 
+"
+                f"If wait too long, please check if the stream url is correct."
+            )
+
             try:
-                await ws.trySendAlarm(
-                    {"algorithmType": "body", "count": clsCount.get("person", 0), "predictResult": frameResult}
-                )
-                await ws.trySendAlarm(
-                    {"algorithmType": "vehicle", "count": clsCount.get("car", 0), "predictResult": frameResult}
-                )
+                results = model.detectVideo(ws.rtspUrl, classList=[0, 2])
+                for frameResult in results:
+                    # Check ffmpeg is still alive before processing each frame
+                    if ffmpegProcess is not None and not ffmpegProcess.is_alive():
+                        print(f"ffmpeg process for camera {ws.cameraID} is dead, waiting for restart...")
+                        break
+
+                    try:
+                        await ws.trySendAlarm(
+                            {"algorithmType": "body", "count": model.getResultClsCount(frameResult).get("person", 0), "predictResult": frameResult}
+                        )
+                        await ws.trySendAlarm(
+                            {"algorithmType": "vehicle", "count": model.getResultClsCount(frameResult).get("car", 0), "predictResult": frameResult}
+                        )
+                    except Exception as e:
+                        print(f"Warning: alarm send failed for camera {ws.cameraID}: {e}")
+
+                    await asyncio.sleep(detection_interval)
+
             except Exception as e:
-                print(f"Warning: alarm send failed for camera {ws.cameraID}: {e}")
-            if not ffmpegProcess.is_alive():
-                print(f"ffmpeg process for camera {ws.cameraID} is dead")
-                break
-            await asyncio.sleep(float(ws.context.get("interval", 1)))
-    finally:
-        ffmpegProcess.kill()
-        await ws.disconnect()
-        print("error, kill ffmpeg process")
+                print(f"YOLO detection error for camera {ws.cameraID}: {e}, retrying in 5s...")
+            finally:
+                if ffmpegProcess is not None:
+                    ffmpegProcess.kill()
+                    ffmpegProcess.join(timeout=3)
 
+        except Exception as e:
+            print(f"Fatal error for camera {ws.cameraID}: {e}, retrying in 5s...")
+        finally:
+            if ffmpegProcess is not None:
+                try:
+                    ffmpegProcess.kill()
+                except:
+                    pass
+            if model is not None:
+                try:
+                    del model
+                except:
+                    pass
 
+        print(f"Restarting detection for camera {ws.cameraID} in 5s...")
+        await asyncio.sleep(5)
 def main(
     wsServerUrl="", rtmpServerUrl="", adminUsername="", password="",
     cameraID="", detectionInterval=0.5, modelDevice="cpu",
