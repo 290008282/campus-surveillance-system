@@ -13,7 +13,7 @@ import hmac
 def getAllCameraIDs(httpServerUrl, adminUsername, password):
     __SHA256KEY = "campus-surveillance-system".encode("utf-8")
     r = requests.get(
-        httpServerUrl + "/api/ai/getOfflineCameraList",
+        httpServerUrl + "/api/ai/getAllCameraList",
         params={
             "adminUsername": adminUsername,
             "password": base64.b64encode(
@@ -25,7 +25,7 @@ def getAllCameraIDs(httpServerUrl, adminUsername, password):
     if not res["success"]:
         raise Exception(res["message"])
 
-    return [str(x["id"]) for x in res.get("data", [])]
+    return [str(x["cameraID"]) for x in res.get("data", [])]
 
 
 def ffmpegStreamToRtmpServer(streamUrl: str, rtmpUrl: str):
