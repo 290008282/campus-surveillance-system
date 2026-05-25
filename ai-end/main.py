@@ -58,12 +58,15 @@ async def beginWork(ws: WSClient):
         results = model.detectVideo(ws.rtspUrl, classList=[0, 2])
         for frameResult in results:
             clsCount = model.getResultClsCount(frameResult)
-            await ws.trySendAlarm(
-                {"algorithmType": "body", "count": clsCount.get("person", 0), "predictResult": frameResult}
-            )
-            await ws.trySendAlarm(
-                {"algorithmType": "vehicle", "count": clsCount.get("car", 0), "predictResult": frameResult}
-            )
+            try:
+                await ws.trySendAlarm(
+                    {"algorithmType": "body", "count": clsCount.get("person", 0), "predictResult": frameResult}
+                )
+                await ws.trySendAlarm(
+                    {"algorithmType": "vehicle", "count": clsCount.get("car", 0), "predictResult": frameResult}
+                )
+            except Exception as e:
+                print(f"Warning: alarm send failed for camera {ws.cameraID}: {e}")
             if not ffmpegProcess.is_alive():
                 print(f"ffmpeg process for camera {ws.cameraID} is dead")
                 break
