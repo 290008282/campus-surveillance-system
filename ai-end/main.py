@@ -10,7 +10,7 @@ import hashlib
 import hmac
 
 
-def getOfflineCameraIDs(httpServerUrl, adminUsername, password):
+def getAllCameraIDs(httpServerUrl, adminUsername, password):
     __SHA256KEY = "campus-surveillance-system".encode("utf-8")
     r = requests.get(
         httpServerUrl + "/api/ai/getOfflineCameraList",
