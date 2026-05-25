@@ -114,7 +114,7 @@ class WSClient:
         """
         matchedRules = []
         if not self.ready:
-            raise Exception(f"CameraID {self.cameraID} not ready or disconnected")
+            return matchedRules  # silently skip when disconnected
         if self.alarmRules is None:
             return matchedRules
 
