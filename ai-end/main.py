@@ -58,8 +58,7 @@ async def beginWork(ws: WSClient):
             )
             ffmpegProcess.start()
             print(
-                f"Begin to detect video for camera {ws.cameraID}, streamUrl: {ws.rtspUrl} 
-"
+                f"Begin to detect video for camera {ws.cameraID}, streamUrl: {ws.rtspUrl}\n"
                 f"If wait too long, please check if the stream url is correct."
             )
 
