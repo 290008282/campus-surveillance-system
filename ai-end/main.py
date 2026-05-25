@@ -90,11 +90,8 @@ async def beginWork(ws: WSClient):
                 await asyncio.sleep(30)
                 continue
 
-            print(
-                f"Begin to detect video for camera {ws.cameraID}, streamUrl: {ws.rtspUrl}
-"
-                f"If wait too long, please check if the stream url is correct."
-            )
+            print("Begin to detect video for camera " + ws.cameraID + ", streamUrl: " + ws.rtspUrl + "\n"
+                  "If wait too long, please check if the stream url is correct.")
 
             try:
                 results = model.detectVideo(ws.rtspUrl, classList=[0, 2])
