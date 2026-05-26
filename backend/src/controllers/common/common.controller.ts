@@ -58,7 +58,7 @@ export class CommonController {
     return list.map((camera) => ({
       cameraID: camera.id,
     }));
-
+  }
 
   @Get('/api/ai/getAllCameraList')
   async getAllCameraList(
@@ -74,6 +74,5 @@ export class CommonController {
     return list.map((camera) => ({
       cameraID: camera.id,
     }));
-  }
   }
 }
