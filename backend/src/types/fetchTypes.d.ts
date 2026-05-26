@@ -431,7 +431,7 @@ export interface FetchTypes {
       success: true;
       data: Array<{ cameraID: number }>;
     };
-  };;
+  };
 }
 
 export type fetchUrls = keyof FetchTypes extends `${string} ${infer Url}`
