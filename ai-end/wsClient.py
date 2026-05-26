@@ -200,9 +200,27 @@ class WSClient:
         pass
 
     async def stayConnected(self):
-        await self.connect()
-        await self.sio.wait()
-        pass
+        """Keep WebSocket connected with automatic reconnection."""
+        while True:
+            try:
+                # Clean up previous connection
+                if self.connected:
+                    try:
+                        await self.sio.disconnect()
+                    except:
+                        pass
+                    self.connected = False
+                    self.ready = False
+                
+                await self.connect()
+                await self.sio.wait()  # Blocks until disconnect
+            except Exception as e:
+                print(f"[Camera {self.cameraID}] Connection error: {e}")
+            
+            self.connected = False
+            self.ready = False
+            print(f"[Camera {self.cameraID}] Disconnected, reconnecting in 5s...")
+            await asyncio.sleep(5)
 
     def onConnect(self):
         print(f"connection for camera {self.cameraID} established")
