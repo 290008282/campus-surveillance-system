@@ -1,194 +1,219 @@
-# 鏅烘収鍥尯瑙嗛鐩戞帶绯荤粺 - Docker 閮ㄧ讲鎸囧崡
+# 智慧园区视频监控系统 - Docker 部署指南
 
-## 淇鍐呭
+## 修复内容
 
-### 宸插畬鎴愮殑淇
+### 已完成的修复
 
-1. **docker-compose.yml** - 缁熶竴绠＄悊鎵€鏈夋湇鍔?2. **init.sql** - 鏁版嵁搴撳垵濮嬪寲鑴氭湰
-3. **user.service.ts** - 淇鐧诲綍楠岃瘉锛堟敮鎸?bcrypt锛?4. **app.module.ts** - 娣诲姞鑷姩鍒濆鍖栭粯璁ゆ暟鎹?
+1. **docker-compose.yml** - 统一管理所有服务，添加 shm_size: 512m 支持 HLS 切片存储
+2. **init.sql** - 数据库初始化脚本，含默认管理员账户
+3. **user.service.ts** - 修复登录验证（支持 bcrypt + 明文兼容）
+4. **app.module.ts** - 添加自动初始化默认数据
+5. **nginx.conf** - HLS 参数优化、worker_connections 4096、alias 路径修复
+6. **ai-end/main.py** - 持续监控模式、FFmpeg -an 禁用音频、HEVC 容错、进程自动重启
+7. **common.controller.ts** - 新增 getAllCameraList API 端点
+8. **报警去重** - 节流 300s、检测间隔 2s
+9. **批量操作** - 批量确认和删除报警事件
+
 ---
 
-## 蹇€熼儴缃?
-### 鍓嶇疆瑕佹眰
+## 快速部署
 
-- Docker Desktop
-- Docker Compose
+### 前置要求
 
-### 閮ㄧ讲姝ラ
+- Docker & Docker Compose
+- 至少 2GB 可用磁盘空间（AI 模型依赖）
+- 网络可访问摄像头 RTSP 流
 
-#### 1. 鎷夊彇椤圭洰锛堝凡淇鐗堟湰锛?```bash
+### 部署步骤
+
+#### 1. 拉取项目
+
+```bash
 git clone https://github.com/290008282/campus-surveillance-system.git
 cd campus-surveillance-system
 ```
 
-#### 2. 鏋勫缓骞跺惎鍔ㄦ墍鏈夋湇鍔?```bash
-docker-compose up -d --build
-```
+#### 2. 配置环境变量（可选）
 
-#### 3. 鏌ョ湅鏈嶅姟鐘舵€?```bash
-docker-compose ps
-```
+编辑 `docker-compose.yml` 中的环境变量：
 
-#### 4. 鏌ョ湅鏃ュ織
-```bash
-docker-compose logs -f
-```
-
----
-
-## 璁块棶鍦板潃
-
-| 鏈嶅姟 | 鍦板潃 | 璇存槑 |
-|------|------|------|
-| **鍓嶇** | http://localhost:8080 | Web 鐣岄潰 |
-| **RTMP** | rtmp://localhost:1515/live | 鐩存挱娴?|
-| **MySQL** | localhost:3306 | 鏁版嵁搴?|
-
----
-
-## 榛樿璐﹀彿
-
-| 瑙掕壊 | 鐢ㄦ埛鍚?| 瀵嗙爜 |
-|------|--------|------|
-| **绠＄悊鍛?* | admin | admin |
-| **鏅€氱敤鎴?* | (娉ㄥ唽) | (娉ㄥ唽) |
-
----
-
-## 閬囧埌闂锛?
-### 闂 1: MySQL 杩炴帴澶辫触
-```bash
-# 妫€鏌?MySQL 瀹瑰櫒鐘舵€?docker-compose ps mysql
-docker-compose logs mysql
-```
-
-### 闂 2: 鍚庣鍚姩澶辫触
-```bash
-# 鏌ョ湅鍚庣鏃ュ織
-docker-compose logs backend
-```
-
-### 闂 3: 绔彛琚崰鐢?```bash
-# 鏌ョ湅绔彛鍗犵敤
-netstat -ano | findstr "8080 3306 1515"
-```
-
-淇敼 `docker-compose.yml` 涓殑绔彛鏄犲皠锛?
 ```yaml
-ports:
-  - "8081:80"  # 鏀规垚 8081
-  - "1516:1935"  # 鏀规垚 1516
+# MySQL
+MYSQL_ROOT_PASSWORD: root
+MYSQL_DATABASE: campus-surveillance-system
+
+# 后端
+JWT_SECRET: your-secret-key
+
+# AI 端
+HTTP_SERVER_URL: http://front-backend:3000
+RTMP_SERVER_URL: rtmp://front-backend:1515/live
+ADMIN_USERNAME: admin
+ADMIN_PASSWORD: admin
+HLS_HOST: 192.168.0.254  # 改为实际服务器 IP
+```
+
+#### 3. 构建并启动所有服务
+
+```bash
+docker compose build --no-cache
+docker compose up -d
+```
+
+> ⚠️ 首次构建较慢（AI 端需下载 PyTorch 等），预计 10-20 分钟
+
+#### 4. 查看服务状态
+
+```bash
+docker compose ps
+docker compose logs -f
 ```
 
 ---
 
-## 椤圭洰缁撴瀯
+## 服务说明
+
+| 服务 | 容器名 | 端口 | 说明 |
+|------|--------|------|------|
+| **前端 + 后端 + Nginx** | campus-front-backend | 8088:80, 1515:1515 | Web 界面 + API + RTMP/HLS |
+| **AI 检测端** | campus-ai-end | - | YOLOv8 目标检测 + FFmpeg 推流 |
+| **MySQL** | campus-mysql | 3306:3306 | 数据库 |
+
+---
+
+## 访问地址
+
+| 服务 | 地址 | 说明 |
+|------|------|------|
+| **Web 管理界面** | http://SERVER_IP:8088 | 前端页面 |
+| **HLS 直播流** | http://SERVER_IP:8088/hls/CAMERA_ID.m3u8 | 摄像头直播 |
+| **RTMP 推流** | rtmp://SERVER_IP:1515/live | FFmpeg 推流地址 |
+| **MySQL** | SERVER_IP:3306 | 数据库直连 |
+
+---
+
+## 默认账号
+
+| 角色 | 用户名 | 密码 |
+|------|--------|------|
+| **管理员** | admin | admin |
+| **普通用户** | (注册) | (注册) |
+
+---
+
+## 常见问题
+
+### 问题 1: MySQL 连接失败
+
+```bash
+docker compose logs mysql
+# 确认 MySQL 容器健康
+docker compose exec mysql mysql -uroot -proot -e "SELECT 1"
+```
+
+### 问题 2: 前端页面白屏或 294 字节
+
+前端构建失败会导致 Nginx 返回默认页。检查构建日志：
+
+```bash
+docker compose logs front-backend | head -50
+```
+
+确保 `dist/index.html` 大小 > 1KB。
+
+### 问题 3: HLS 直播流 404
+
+1. 确认 FFmpeg 进程运行：`docker compose exec ai-end ps aux | grep ffmpeg`
+2. 检查 HLS 文件：`docker compose exec front-backend ls -la /dev/shm/nginx-live/`
+3. 确认 nginx alias 路径以 `/` 结尾
+
+### 问题 4: AI 端反复重启
+
+1. 查看日志：`docker compose logs ai-end --tail 100`
+2. 常见原因：Python 语法错误、依赖缺失
+3. 确认 `getAllCameraList` API 返回摄像头列表
+
+### 问题 5: HEVC 摄像头解码错误
+
+H.265 摄像头可能出现解码警告，FFmpeg 已添加容错参数：
+
+```
+-err_detect ignore_err -fflags +discardcorrupt+genpts+igndts
+```
+
+### 问题 6: /dev/shm 空间不足
+
+docker-compose.yml 已配置 `shm_size: '512m'`。如仍不足：
+
+```bash
+# 临时扩大
+mount -o remount,size=1G /dev/shm
+```
+
+### 问题 7: 端口被占用
+
+```bash
+# 查看端口占用
+ss -tlnp | grep -E "8088|3306|1515"
+```
+
+修改 `docker-compose.yml` 中的端口映射。
+
+---
+
+## 项目结构
 
 ```
 campus-surveillance-system/
-鈹溾攢鈹€ docker-compose.yml     # 閮ㄧ讲閰嶇疆 鉁?宸蹭慨澶?鈹溾攢鈹€ init.sql              # 鏁版嵁搴撳垵濮嬪寲 鉁?宸蹭慨澶?鈹溾攢鈹€ backend/
-鈹?  鈹溾攢鈹€ Dockerfile
-鈹?  鈹溾攢鈹€ server.config.env
-鈹?  鈹斺攢鈹€ src/
-鈹?      鈹溾攢鈹€ app.module.ts    # 鍒濆鍖?鉁?宸蹭慨澶?鈹?      鈹斺攢鈹€ services/user/
-鈹?          鈹斺攢鈹€ user.service.ts  # 鐧诲綍楠岃瘉 鉁?宸蹭慨澶?鈹溾攢鈹€ frontend/             # 鍓嶇 (鏋勫缓)
-鈹溾攢鈹€ ai-end/               # AI 绔?(Python)
-鈹斺攢鈹€ docs/                 # 鏂囨。
+├── docker-compose.yml          # 编排配置
+├── front-backend.Dockerfile    # 前端+后端+Nginx 镜像
+├── ai-end.Dockerfile           # AI 检测端镜像
+├── init.sql                    # 数据库初始化
+├── backend/
+│   ├── nginx.conf              # Nginx + RTMP 配置
+│   ├── server.config.env       # 后端环境变量
+│   └── src/
+│       ├── app.module.ts
+│       ├── controllers/        # API 路由
+│       │   └── common.controller.ts
+│       ├── services/
+│       │   ├── camera/         # 摄像头服务
+│       │   ├── user/           # 用户认证
+│       │   └── alarm-event/    # 报警事件
+│       └── types/
+│           └── fetchTypes.d.ts # API 类型定义
+├── frontend/
+│   └── src/                    # UmiJS + React 前端
+├── ai-end/
+│   ├── main.py                 # 入口：FFmpeg + YOLOv8
+│   ├── wsClient.py             # WebSocket 客户端
+│   └── requirements.txt        # Python 依赖
+└── docs/                       # 文档和截图
 ```
 
 ---
 
-## 鎵嬪姩閮ㄧ讲锛堝垎姝ワ級
+## 更新部署
 
-濡傛灉 `docker-compose up` 鏋勫缓澶辫触锛屽彲浠ュ垎姝ラ儴缃诧細
-
-### 1. 鍚姩 MySQL
 ```bash
-docker run -d \
-  --name campus-mysql \
-  -e MYSQL_ROOT_PASSWORD=root \
-  -e MYSQL_DATABASE=campus-surveillance-system \
-  -p 3306:3306 \
-  -v ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro \
-  mysql:8.0
+cd /www/campus-surveillance-system
+git fetch origin
+git reset --hard origin/main
+docker compose down
+docker compose build --no-cache
+docker compose up -d --force-recreate
 ```
 
-### 2. 鍚姩鍚庣
-```bash
-cd backend
-docker build -t campus-backend .
-docker run -d \
-  --name campus-backend \
-  -e MYSQL_HOST=host.docker.internal \
-  -e MYSQL_PORT=3306 \
-  -e MYSQL_DATABASE=campus-surveillance-system \
-  -e MYSQL_USER=root \
-  -e MYSQL_PASSWORD=root \
-  -e JWT_SECRET= campus-secret-key \
-  -p 3000:3000 \
-  campus-backend
-```
-
-### 3. 鍚姩鍓嶇+Nginx
-```bash
-docker build -f front-backend.Dockerfile -t campus-frontend .
-docker run -d \
-  --name campus-frontend \
-  -p 8080:80 \
-  -p 1515:1935 \
-  campus-frontend
-```
+> ⚠️ `docker compose down` 会清除数据卷，如需保留数据请备份。
 
 ---
 
-## AI 绔厤缃?
-AI 绔渶瑕佹纭繛鎺ュ埌鍚庣锛?
-```bash
-docker run -d \
-  --name campus-ai-end \
-  -e HTTP_SERVER_URL=http://host.docker.internal:3000 \
-  -e RTMP_SERVER_URL=rtmp://host.docker.internal:1515/live \
-  -e ADMIN_USERNAME=admin \
-  -e ADMIN_PASSWORD=admin \
-  campus-ai-end
-```
+## 技术支持
 
-> 娉ㄦ剰: Windows 涓婁娇鐢?`host.docker.internal`锛孡inux 涓婁娇鐢?IP 鍦板潃
+如有问题，请检查：
 
----
-
-## 楠岃瘉閮ㄧ讲鎴愬姛
-
-1. 璁块棶 http://localhost:8080
-2. 浣跨敤 admin/admin 鐧诲綍
-3. 妫€鏌ユ憚鍍忓ご绠＄悊椤甸潰
-
----
-
-## 鑷畾涔変慨鏀?
-### 淇敼绠＄悊鍛樺瘑鐮?```bash
-# 杩涘叆鍚庣瀹瑰櫒
-docker exec -it campus-backend sh
-
-# 浣跨敤 Node.js 鍒涘缓瀵嗙爜鍝堝笇
-node -e "const bcrypt = require('bcrypt'); bcrypt.hash('your-password', 10).then(p => console.log(p));"
-```
-
-鐒跺悗鍦ㄦ暟鎹簱涓洿鏂帮細
-```sql
-UPDATE users SET password = '鏂板搱甯屽€? WHERE username = 'admin';
-```
-
-### 淇敼 JWT Secret
-鍦?`docker-compose.yml` 涓慨鏀癸細
-```yaml
-environment:
-  JWT_SECRET: your-secret-key
-```
-
----
-
-## 鎶€鏈敮鎸?
-濡傛湁闂锛岃妫€鏌ワ細
-1. Docker Desktop 鏄惁杩愯
-2. 绔彛 8080/3306/1515 鏄惁琚崰鐢?3. MySQL 瀹瑰櫒鏄惁鍋ュ悍鍚姩
+1. Docker 服务是否正常运行
+2. 端口 8088/3306/1515 是否被占用
+3. MySQL 容器是否健康
+4. AI 端日志是否有 Python 错误
+5. HLS 目录是否有 .m3u8 和 .ts 文件
