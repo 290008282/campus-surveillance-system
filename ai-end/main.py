@@ -159,6 +159,8 @@ if __name__ == "__main__":
     password = os.getenv("ADMIN_PASSWORD", "admin")
 
     RETRY_INTERVAL = 30
+    CAMERA_SYNC_INTERVAL = 60  # seconds between camera list syncs
+
     cameraIDs = []
 
     while True:
@@ -170,7 +172,7 @@ if __name__ == "__main__":
             cameraIDs = getAllCameraIDs(httpServerUrl, adminUsername, password)
 
             if not cameraIDs:
-                print(f"No offline cameras found. Retrying in {RETRY_INTERVAL}s...")
+                print(f"No cameras found. Retrying in {RETRY_INTERVAL}s...")
                 time.sleep(RETRY_INTERVAL)
                 continue
 
@@ -182,36 +184,63 @@ if __name__ == "__main__":
     print(f"Found {len(cameraIDs)} camera(s): {cameraIDs}")
     detectionInterval = float(os.getenv("DETECTION_INTERVAL", 0.5))
     modelDevice = os.getenv("MODEL_DEVICE", "cpu")
-    processes = []
 
-    for cameraID in cameraIDs:
+    # cameraIDs -> processes mapping
+    processes = {}  # cameraID -> Process
+
+    def start_camera(cid):
         p = multiprocessing.Process(
             target=main,
             args=(wsServerUrl, rtmpServerUrl, adminUsername, password,
-                  cameraID, detectionInterval, modelDevice),
+                  cid, detectionInterval, modelDevice),
         )
         p.start()
-        processes.append(p)
+        return p
 
-    restart_backoff = {i: 5 for i in range(len(cameraIDs))}
+    # Start initial cameras
+    for cameraID in cameraIDs:
+        processes[cameraID] = start_camera(cameraID)
+
+    # Track restart backoff per camera
+    restart_backoff = {}
     max_backoff = 300
 
-    while True:
-        for i, p in enumerate(processes):
-            if not p.is_alive():
-                cameraID = cameraIDs[i]
-                wait = restart_backoff[i]
-                print(f"[Camera {cameraID}] Process died (exit code: {p.exitcode}), restarting in {wait}s...")
-                time.sleep(wait)
-                restart_backoff[i] = min(wait * 2, max_backoff)
+    # Periodic camera list sync timer
+    last_sync = time.time()
 
-                p_new = multiprocessing.Process(
-                    target=main,
-                    args=(wsServerUrl, rtmpServerUrl, adminUsername, password,
-                          cameraID, detectionInterval, modelDevice),
-                )
-                p_new.start()
-                processes[i] = p_new
-                print(f"[Camera {cameraID}] Process restarted (PID: {p_new.pid})")
-                restart_backoff[i] = 5
+    while True:
+        # --- Monitor existing processes ---
+        for cid, p in list(processes.items()):
+            if not p.is_alive():
+                wait = restart_backoff.get(cid, 5)
+                print(f"[Camera {cid}] Process died (exit code: {p.exitcode}), restarting in {wait}s...")
+                time.sleep(wait)
+                restart_backoff[cid] = min(wait * 2, max_backoff)
+
+                p_new = start_camera(cid)
+                processes[cid] = p_new
+                print(f"[Camera {cid}] Process restarted (PID: {p_new.pid})")
+                restart_backoff[cid] = 5
+
+        # --- Periodic camera list sync ---
+        if os.getenv("CAMERA_IDS") is None and time.time() - last_sync >= CAMERA_SYNC_INTERVAL:
+            last_sync = time.time()
+            try:
+                latest = getAllCameraIDs(httpServerUrl, adminUsername, password)
+                latest_set = set(latest)
+                current_set = set(processes.keys())
+
+                # Detect new cameras
+                new_cameras = latest_set - current_set
+                if new_cameras:
+                    print(f"[Camera Sync] New camera(s) detected: {new_cameras}, starting...")
+                    for cid in new_cameras:
+                        processes[cid] = start_camera(cid)
+                        print(f"[Camera {cid}] Started (PID: {processes[cid].pid})")
+
+                # Note: removed cameras are kept running (will fail gracefully)
+                # to avoid disrupting active streams on accidental DB changes
+            except Exception as e:
+                print(f"[Camera Sync] Error fetching camera list: {e}")
+
         time.sleep(5)
