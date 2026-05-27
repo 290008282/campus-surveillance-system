@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AlarmEvent } from './alarm-event.entity';
-import { FindManyOptions, Like, Repository } from 'typeorm';
+import { FindManyOptions, In, Like, Repository } from 'typeorm';
 
 @Injectable()
 export class AlarmEventService {
@@ -68,6 +68,20 @@ export class AlarmEventService {
 
   async resolve(id: number) {
     await this.alarmEventRepo.update({ id }, { resolved: true });
+  }
+
+  async resolveAll(ids?: number[]) {
+    if (ids && ids.length > 0) {
+      await this.alarmEventRepo.update({ id: In(ids) }, { resolved: true });
+    } else {
+      await this.alarmEventRepo.update({ resolved: false }, { resolved: true });
+    }
+  }
+
+  async deleteByIds(ids: number[]) {
+    if (ids.length > 0) {
+      await this.alarmEventRepo.delete({ id: In(ids) });
+    }
   }
 
   async addEvent(event: Partial<AlarmEvent>) {
