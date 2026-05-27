@@ -121,7 +121,7 @@ export class UserController {
   @Post('/api/user/resolveAllAlarms')
   async resolveAllAlarms(
     @Body('eventIDs') eventIDs?: number[],
-  ): Promise<{ data: {} }> {
+  ): Promise<FetchTypes['POST /api/user/resolveAllAlarms']['res']['data']> {
     await this.alarmEventService.resolveAll(eventIDs);
     return { data: {} };
   }
@@ -129,7 +129,7 @@ export class UserController {
   @Post('/api/user/deleteAlarms')
   async deleteAlarms(
     @Body('eventIDs') eventIDs: number[],
-  ): Promise<{ data: {} }> {
+  ): Promise<FetchTypes['POST /api/user/deleteAlarms']['res']['data']> {
     await this.alarmEventService.deleteByIds(eventIDs);
     return { data: {} };
   }
