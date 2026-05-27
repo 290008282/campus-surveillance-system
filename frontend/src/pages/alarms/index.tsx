@@ -3,6 +3,8 @@ import type ServiceTypes from '@/services/serviceTypes';
 import {
   CheckCircleOutlined,
   ExclamationCircleOutlined,
+  DeleteOutlined,
+  CheckOutlined,
 } from '@ant-design/icons';
 import {
   Button,
@@ -13,9 +15,11 @@ import {
   message,
   Modal,
   Select,
+  Space,
   Spin,
   Table,
   Tag,
+  Popconfirm,
 } from 'antd';
 import { type ColumnType } from 'antd/es/table';
 import { observer } from 'mobx-react';
@@ -34,9 +38,12 @@ interface FormData {
 }
 
 const Alarms: FC = () => {
+  const [selectedRowKeys, setSelectedRowKeys] = useState<number[]>([]);
+  const [batchLoading, setBatchLoading] = useState(false);
+
   const columns: Array<ColumnType<TableData>> = [
     {
-      title: '事件ID',
+      title: '记录ID',
       dataIndex: 'eventID',
     },
     {
@@ -77,7 +84,7 @@ const Alarms: FC = () => {
             setModalVisible(true);
           }}
         >
-          {record.resolved ? '查看' : '查看并处理'}
+          {record.resolved ? '查看' : '查看/处理'}
         </Button>
       ),
     },
@@ -126,10 +133,46 @@ const Alarms: FC = () => {
     }
   };
 
+  const handleBatchResolve = async () => {
+    try {
+      setBatchLoading(true);
+      await (services as any)['POST /api/user/resolveAllAlarms']({
+        eventIDs: selectedRowKeys.length > 0 ? selectedRowKeys : undefined,
+      });
+      message.success(
+        selectedRowKeys.length > 0
+          ? `已处理 ${selectedRowKeys.length} 条报警`
+          : '已处理所有未处理报警',
+      );
+      setSelectedRowKeys([]);
+      refreshAsync();
+    } catch (error) {
+      message.error(String(error));
+    } finally {
+      setBatchLoading(false);
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    try {
+      setBatchLoading(true);
+      await (services as any)['POST /api/user/deleteAlarms']({
+        eventIDs: selectedRowKeys,
+      });
+      message.success(`已删除 ${selectedRowKeys.length} 条报警`);
+      setSelectedRowKeys([]);
+      refreshAsync();
+    } catch (error) {
+      message.error(String(error));
+    } finally {
+      setBatchLoading(false);
+    }
+  };
+
   return (
     <Spin spinning={loading}>
       <div className={Styles.content}>
-        <Card title="异常报警事件查询">
+        <Card title="异常报警记录查询">
           <Form form={form} layout="inline">
             <Form.Item name="alarmType" label="报警类型">
               <Input />
@@ -157,7 +200,50 @@ const Alarms: FC = () => {
             </Form.Item>
           </Form>
 
-          <Table columns={columns} rowKey="eventID" {...tableProps} />
+          <div style={{ margin: '12px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Space>
+              <Button
+                icon={<CheckOutlined />}
+                onClick={handleBatchResolve}
+                loading={batchLoading}
+                disabled={selectedRowKeys.length === 0}
+              >
+                {selectedRowKeys.length > 0
+                  ? `处理选中 (${selectedRowKeys.length})`
+                  : '全部处理'}
+              </Button>
+              <Popconfirm
+                title={`确定删除选中的 ${selectedRowKeys.length} 条报警？`}
+                onConfirm={handleBatchDelete}
+                okText="确定"
+                cancelText="取消"
+              >
+                <Button
+                  icon={<DeleteOutlined />}
+                  danger
+                  loading={batchLoading}
+                  disabled={selectedRowKeys.length === 0}
+                >
+                  删除选中 ({selectedRowKeys.length})
+                </Button>
+              </Popconfirm>
+            </Space>
+            {selectedRowKeys.length > 0 && (
+              <span style={{ color: '#999' }}>
+                已选择 {selectedRowKeys.length} 条
+              </span>
+            )}
+          </div>
+
+          <Table
+            columns={columns}
+            rowKey="eventID"
+            rowSelection={{
+              selectedRowKeys,
+              onChange: (keys) => setSelectedRowKeys(keys as number[]),
+            }}
+            {...tableProps}
+          />
         </Card>
 
         <Modal
@@ -193,8 +279,8 @@ const Alarms: FC = () => {
           }
         >
           {modalContext != null && (
-            <Descriptions title="报警事件详情" bordered column={2}>
-              <Descriptions.Item label="事件ID">
+            <Descriptions title="报警记录详情" bordered column={2}>
+              <Descriptions.Item label="记录ID">
                 {modalContext.eventID}
               </Descriptions.Item>
               <Descriptions.Item label="报警类型">
@@ -221,7 +307,7 @@ const Alarms: FC = () => {
                   </Tag>
                 )}
               </Descriptions.Item>
-              <Descriptions.Item label="监控位置" span={2}>
+              <Descriptions.Item label="经纬度位置" span={2}>
                 {modalContext.cameraLatlng[0]}
                 <br />
                 {modalContext.cameraLatlng[1]}
