@@ -1,4 +1,4 @@
-FROM node:18
+FROM node:20
 
 ENV TZ=Asia/Shanghai
 ENV NPM_CONFIG_REGISTRY=https://registry.npmmirror.com
