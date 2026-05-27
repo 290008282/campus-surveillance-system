@@ -3,6 +3,7 @@ import zhCN from 'antd/locale/zh_CN';
 
 export default defineConfig({
   plugins: ['@umijs/plugins/dist/antd', '@umijs/plugins/dist/locale'],
+  mpa: true,
   routes: [
     { path: '/', component: '@/pages/index', layout: false },
     { path: '/login', component: '@/pages/login', layout: false },
@@ -20,7 +21,7 @@ export default defineConfig({
       component: '@/pages/admin/alarmRulesManage',
     },
     { path: '/admin/usersManage', component: '@/pages/admin/usersManage' },
-    { paht: '/*', redirect: '/' },
+    { path: '/*', redirect: '/' },
   ],
   clientLoader: {},
   npmClient: 'pnpm',
