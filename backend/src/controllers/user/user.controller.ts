@@ -118,6 +118,22 @@ export class UserController {
     return {};
   }
 
+  @Post('/api/user/resolveAllAlarms')
+  async resolveAllAlarms(
+    @Body('eventIDs') eventIDs?: number[],
+  ): Promise<{ data: {} }> {
+    await this.alarmEventService.resolveAll(eventIDs);
+    return { data: {} };
+  }
+
+  @Post('/api/user/deleteAlarms')
+  async deleteAlarms(
+    @Body('eventIDs') eventIDs: number[],
+  ): Promise<{ data: {} }> {
+    await this.alarmEventService.deleteByIds(eventIDs);
+    return { data: {} };
+  }
+
   @Get('/api/user/getAlarmEvents')
   async getAlarmEvents(
     @Query()
@@ -235,7 +251,7 @@ export class UserController {
     if (!user) throw new NotFoundException('User not found');
 
     if (body.oldPassword !== user.password) {
-      throw new PreconditionFailedException('旧密码不正确');
+      throw new PreconditionFailedException('原密码不正确');
     }
 
     await this.userService.updateUser({
