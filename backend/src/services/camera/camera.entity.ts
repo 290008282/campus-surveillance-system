@@ -20,22 +20,22 @@ export class Camera {
   @Column()
   name: string;
 
-  @Column({ type: 'bool', default: false })
+  @Column({ name: 'status', type: 'bool', default: false })
   online: boolean;
 
-  @Column({ default: '' })
+  @Column({ name: 'code' })
+  code: string;
+
+  @Column({ name: 'rtsp_url', default: '' })
   rtspUrl: string;
 
-  @Column({ type: 'double' })
+  @Column({ name: 'map_latitude', type: 'double' })
   latitude: number;
 
-  @Column({ type: 'double' })
+  @Column({ name: 'map_longitude', type: 'double' })
   longitude: number;
 
-  @Column()
-  model: string;
-
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
   @UpdateDateColumn()

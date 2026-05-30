@@ -22,13 +22,17 @@ export class AlarmEventService {
       cameraID?: number;
     },
   ): Promise<{ total: number; list: AlarmEvent[] }> {
+    // Validate pagination parameters
+    const validatedCurrent = current && current > 0 ? current : 1;
+    const validatedPageSize = pageSize && pageSize > 0 && pageSize <= 1000 ? pageSize : 20;
+
     const findOptions: FindManyOptions<AlarmEvent> = {
       relations: {
         sourceCamera: withSourceCamera,
         alarmRule: withAlarmRule,
       },
-      skip: current && pageSize ? (current - 1) * pageSize : undefined,
-      take: current && pageSize ? pageSize : undefined,
+      skip: (validatedCurrent - 1) * validatedPageSize,
+      take: validatedPageSize,
       where: {
         resolved: search?.resolved,
         sourceCamera: {

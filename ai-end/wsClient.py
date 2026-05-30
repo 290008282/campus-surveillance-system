@@ -161,23 +161,52 @@ class WSClient:
             'predictResult': Any
         }
         """
-        rules = self.matchAlarmRule(data)
-        for rule in rules:
-            await self.sio.emit(
-                "alarm",
-                {
-                    "alarmRuleID": rule["id"],
-                    "picBase64": "data:image/jpg;base64,"
-                    + base64.b64encode(
-                        cv2.imencode(".jpg", data["predictResult"].plot())[1]
-                    ).decode("utf-8"),
-                },
-            )
-            self.alarmThrottle[rule["id"]] = datetime.now()
-            print(f"camera {self.cameraID} alarm sent: {rule['name']}")
-            pass
-
-        pass
+        try:
+            rules = self.matchAlarmRule(data)
+            if not rules:
+                return  # No matched rules, skip silently
+                
+            for rule in rules:
+                try:
+                    # Extract frame from predict result
+                    frame_result = data.get("predictResult")
+                    if not frame_result:
+                        print(f"[Camera {self.cameraID}] No frame result available")
+                        continue
+                        
+                    # Generate image with detections
+                    import numpy as np
+                    if hasattr(frame_result, 'plot') and callable(frame_result.plot):
+                        plotted_img = frame_result.plot()
+                    else:
+                        # Fallback: create image from result
+                        plotted_img = np.zeros((480, 640, 3), dtype=np.uint8)
+                    
+                    # Encode to base64
+                    success, encoded_img = cv2.imencode(".jpg", plotted_img)
+                    if not success:
+                        print(f"[Camera {self.cameraID}] Failed to encode image")
+                        continue
+                        
+                    base64_img = base64.b64encode(encoded_img).decode("utf-8")
+                    
+                    await self.sio.emit(
+                        "alarm",
+                        {
+                            "alarmRuleID": rule["id"],
+                            "picBase64": "data:image/jpg;base64," + base64_img,
+                        },
+                    )
+                    self.alarmThrottle[rule["id"]] = datetime.now()
+                    print(f"camera {self.cameraID} alarm sent: {rule['name']}")
+                    
+                except Exception as e:
+                    print(f"[Camera {self.cameraID}] Error sending alarm for rule {rule.get('name', 'unknown')}: {e}")
+                    continue
+                    
+        except Exception as e:
+            print(f"[Camera {self.cameraID}] Critical error in trySendAlarm: {e}")
+            # Don't re-raise to avoid breaking the detection loop
 
     async def disconnect(self):
         await self.sio.disconnect()

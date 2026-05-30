@@ -88,12 +88,28 @@ export class AdminController {
   async addCamera(
     @Body() body: FetchTypes['POST /api/admin/addCamera']['req'],
   ): Promise<FetchTypes['POST /api/admin/addCamera']['res']['data']> {
+    // Validate inputs
+    if (!body.cameraName || body.cameraName.trim().length === 0) {
+      throw new Error('Camera name is required');
+    }
+    if (!body.rtspUrl || !body.rtspUrl.startsWith('rtsp://')) {
+      throw new Error('Valid RTSP URL is required');
+    }
+    if (!Array.isArray(body.latlng) || body.latlng.length !== 2) {
+      throw new Error('Valid latitude and longitude are required');
+    }
+    const [lat, lng] = body.latlng;
+    if (typeof lat !== 'number' || typeof lng !== 'number' ||
+        lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      throw new Error('Invalid coordinates');
+    }
+
     await this.cameraService.addCamera({
-      name: body.cameraName,
-      model: body.cameraModel,
-      latitude: body.latlng[0],
-      longitude: body.latlng[1],
-      rtspUrl: body.rtspUrl,
+      name: body.cameraName.trim(),
+      model: body.cameraModel?.trim() || '',
+      latitude: lat,
+      longitude: lng,
+      rtspUrl: body.rtspUrl.trim(),
       alarmRules:
         body.alarmRuleIDs?.map((id) => {
           const rule = new AlarmRule();

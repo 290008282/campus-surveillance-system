@@ -3,15 +3,15 @@ services:
     image: mysql:8.0
     container_name: campus-mysql
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: campus-surveillance-system
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-campus-surveillance-system}
     ports:
-      - "3306:3306"
+      - "${MYSQL_PORT:-3306}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-root}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -23,26 +23,37 @@ services:
       context: .
       dockerfile: front-backend.Dockerfile
     container_name: campus-front-backend
-    shm_size: '512m'
+    shm_size: '1g'
     environment:
-      MYSQL_HOST: mysql
-      MYSQL_PORT: 3306
-      MYSQL_DATABASE: campus-surveillance-system
-      MYSQL_USER: root
-      MYSQL_PASSWORD: root
-      JWT_SECRET: campus-secret-key-change-in-production
-      JWT_EXPIRES_IN: 30d
+      MYSQL_HOST: ${MYSQL_HOST:-mysql}
+      MYSQL_PORT: ${MYSQL_PORT:-3306}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-campus-surveillance-system}
+      MYSQL_USER: ${MYSQL_USER:-root}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-root}
+      JWT_SECRET: ${JWT_SECRET:-campus-secret-key-change-in-production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-30d}
       PUBLIC_DIR_ABSOLUTE_PATH: /var/www/html/public
+      HMAC_KEY: ${HMAC_KEY:-campus-surveillance-system}
+      NODE_ENV: ${NODE_ENV:-production}
+      TZ: ${TZ:-Asia/Shanghai}
     ports:
-      - "8088:80"
-      - "3000:3000"
-      - "1515:1935"
+      - "${WEB_PORT:-8088}:80"
+      - "${API_PORT:-3000}:3000"
+      - "${RTMP_PORT:-1515}:1935"
     depends_on:
       mysql:
         condition: service_healthy
     networks:
       - campus-network
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
 
   ai-end:
     build:
@@ -50,15 +61,27 @@ services:
       dockerfile: ai-end.Dockerfile
     container_name: campus-ai-end
     environment:
-      HTTP_SERVER_URL: "http://front-backend:3000"
-      RTMP_SERVER_URL: "rtmp://front-backend:1515/live"
-      ADMIN_USERNAME: admin
-      ADMIN_PASSWORD: admin
+      HTTP_SERVER_URL: ${HTTP_SERVER_URL:-http://front-backend:3000}
+      RTMP_SERVER_URL: ${RTMP_SERVER_URL:-rtmp://front-backend:1515/live}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
+      HMAC_KEY: ${HMAC_KEY:-campus-surveillance-system}
+      DETECTION_INTERVAL: ${DETECTION_INTERVAL:-0.5}
+      MODEL_DEVICE: ${MODEL_DEVICE:-cpu}
+      TZ: ${TZ:-Asia/Shanghai}
     depends_on:
       - front-backend
     networks:
       - campus-network
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
 
 volumes:
   mysql_data:

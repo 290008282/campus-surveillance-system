@@ -14,12 +14,6 @@ import { AlarmEvent } from './services/alarm-event/alarm-event.entity';
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 
-const HMAC_KEY = 'campus-surveillance-system';
-
-function hmacSha256(text: string): string {
-  return crypto.createHmac('sha256', HMAC_KEY).update(text).digest('base64');
-}
-
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: 'server.config.env' }),
@@ -32,9 +26,15 @@ function hmacSha256(text: string): string {
         port: +configService.get('MYSQL_PORT'),
         username: configService.get('MYSQL_USER'),
         password: configService.get('MYSQL_PASSWORD'),
-        synchronize: true,
+        synchronize: configService.get('NODE_ENV') !== 'production',
         autoLoadEntities: true,
-        timezone: 'Z',
+        timezone: configService.get('TZ', 'Asia/Shanghai'),
+        logging: configService.get('NODE_ENV') !== 'production',
+        // Database connection pool configuration
+        poolSize: 10,
+        connectTimeout: 30000,
+        acquireTimeout: 60000,
+        idleTimeout: 300000,
       }),
     }),
     TypeOrmModule.forFeature([User, AlarmRule, MapConfig]),
@@ -68,6 +68,12 @@ export class AppModule {
   private async initDefaultData() {
     try {
       const { DataSource } = require('typeorm');
+      const hmacKey = process.env.HMAC_KEY || 'campus-surveillance-system';
+
+      const hmacSha256 = (text: string): string => {
+        return crypto.createHmac('sha256', hmacKey).update(text).digest('base64');
+      };
+
       const dataSource = new DataSource({
         type: 'mysql',
         database: process.env.MYSQL_DATABASE || 'campus-surveillance-system',
@@ -76,7 +82,8 @@ export class AppModule {
         username: process.env.MYSQL_USER || 'root',
         password: process.env.MYSQL_PASSWORD || 'root',
         entities: [User, AlarmRule, MapConfig, Camera, AlarmEvent],
-        synchronize: true,
+        synchronize: process.env.NODE_ENV !== 'production',
+        timezone: process.env.TZ || 'Asia/Shanghai',
       });
 
       await dataSource.initialize();
@@ -127,6 +134,7 @@ export class AppModule {
       console.log('[Init] Database initialization complete');
     } catch (error) {
       console.error('[Init] Init failed:', error.message);
+      throw error; // Propagate error instead of just logging
     }
   }
 }

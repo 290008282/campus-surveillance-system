@@ -51,7 +51,7 @@ export class AiEndGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private utilsService: UtilsService,
   ) {}
 
-  connecetedClients: Map<string, Socket> = new Map();
+  connectedClients: Map<string, Socket> = new Map();
 
   @SubscribeMessage('message')
   handleMessage(
@@ -88,7 +88,7 @@ export class AiEndGateway implements OnGatewayConnection, OnGatewayDisconnect {
     cameraID: number,
     cameraConfig?: CameraConfig,
   ) {
-    const client = this.connecetedClients.get(cameraID.toString());
+    const client = this.connectedClients.get(cameraID.toString());
     if (!cameraConfig) {
       const config = await this.cameraService.getById(cameraID, true);
       if (!config) return;
@@ -103,7 +103,7 @@ export class AiEndGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   async disconnectClient(cameraID: number) {
-    this.connecetedClients.get(cameraID.toString())?.disconnect();
+    this.connectedClients.get(cameraID.toString())?.disconnect();
   }
 
   async handleConnection(@ConnectedSocket() client: Socket) {
@@ -114,23 +114,28 @@ export class AiEndGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
       const data: ClientInfo = JSON.parse(client.client.request.headers.data);
 
-      const user = await this.userService.authLogin(
-        data.username,
-        data.password,
-      );
-
-      if (user?.role !== 'admin') {
+      // Validate token instead of username/password
+      const token = this.extractTokenFromClient(client);
+      if (!token) {
+        console.log('WebSocket connection rejected: No token provided');
         client.disconnect();
         return;
       }
 
-      if (this.connecetedClients.has(data.cameraID)) {
-        this.connecetedClients.get(data.cameraID)?.disconnect();
-        this.connecetedClients.delete(data.cameraID);
+      const user = await this.validateToken(token);
+      if (!user || user.role !== 'admin') {
+        console.log('WebSocket connection rejected: Invalid token or insufficient permissions');
+        client.disconnect();
+        return;
+      }
+
+      if (this.connectedClients.has(data.cameraID)) {
+        this.connectedClients.get(data.cameraID)?.disconnect();
+        this.connectedClients.delete(data.cameraID);
         await sleep(1000);
       }
 
-      client.data = data;
+      client.data = { ...data, user };
 
       const camera = await this.cameraService.getById(
         parseInt(data.cameraID),
@@ -147,18 +152,45 @@ export class AiEndGateway implements OnGatewayConnection, OnGatewayDisconnect {
         online: true,
       });
 
-      this.connecetedClients.set(data.cameraID, client);
+      this.connectedClients.set(data.cameraID, client);
 
       console.log(`client ${data.cameraID} connected`);
 
       await this.notifyCameraConfigChange(parseInt(data.cameraID));
-    } catch {
+    } catch (error) {
+      console.error('WebSocket connection error:', error);
       client.disconnect();
     }
   }
 
+  private extractTokenFromClient(client: Socket): string | null {
+    const authHeader = client.client.request.headers.authorization as string;
+    if (!authHeader) return null;
+
+    const [type, token] = authHeader.split(' ');
+    return type === 'Bearer' ? token : null;
+  }
+
+  private async validateToken(token: string): Promise<any> {
+    try {
+      const jwtService = this.userService.getJwtService();
+      const payload = await jwtService.verifyAsync(token);
+
+      // Check if token is revoked in cache
+      const cachedToken = await this.userService.getCachedToken(payload.username);
+      if (!cachedToken || cachedToken !== token) {
+        return null;
+      }
+
+      return payload;
+    } catch (error) {
+      console.error('Token validation error:', error);
+      return null;
+    }
+  }
+
   async handleDisconnect(@ConnectedSocket() client: Socket) {
-    this.connecetedClients.delete(client.data.cameraID);
+    this.connectedClients.delete(client.data.cameraID);
     client.removeAllListeners();
 
     const data = client.data as ClientInfo;

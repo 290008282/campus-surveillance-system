@@ -18,7 +18,9 @@ CREATE TABLE IF NOT EXISTS `users` (
   `deleted_at` DATETIME NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_username` (`username`),
-  KEY `idx_role` (`role`)
+  KEY `idx_role` (`role`),
+  KEY `idx_email` (`email`),
+  KEY `idx_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Cameras table
@@ -34,7 +36,11 @@ CREATE TABLE IF NOT EXISTS `cameras` (
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `deleted_at` DATETIME NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_code` (`code`)
+  UNIQUE KEY `uk_code` (`code`),
+  KEY `idx_status` (`status`),
+  KEY `idx_name` (`name`),
+  KEY `idx_location` (`map_latitude`, `map_longitude`),
+  KEY `idx_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Alarm events table
@@ -50,7 +56,11 @@ CREATE TABLE IF NOT EXISTS `alarm_events` (
   `deleted_at` DATETIME NULL,
   PRIMARY KEY (`id`),
   KEY `idx_camera_id` (`camera_id`),
-  KEY `idx_status` (`status`)
+  KEY `idx_alarm_rule_id` (`alarm_rule_id`),
+  KEY `idx_status` (`status`),
+  KEY `idx_created_at` (`created_at`),
+  KEY `idx_camera_status` (`camera_id`, `status`),
+  KEY `idx_created_status` (`created_at`, `status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Alarm rules table
@@ -64,7 +74,10 @@ CREATE TABLE IF NOT EXISTS `alarm_rules` (
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `deleted_at` DATETIME NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `idx_enabled` (`enabled`),
+  KEY `idx_model_class` (`model_class`),
+  KEY `idx_name` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Map configs table
@@ -79,7 +92,9 @@ CREATE TABLE IF NOT EXISTS `map_configs` (
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `deleted_at` DATETIME NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `idx_name` (`name`),
+  KEY `idx_type` (`map_type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Insert default admin user (password: admin)
