@@ -39,7 +39,12 @@ if ! command -v sshpass &> /dev/null; then
     apt-get update && apt-get install -y sshpass
 fi
 
-# SSH命令函数
+# SSH命令函数（使用sudo）
+ssh_sudo() {
+    sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP "echo '$SSH_PASS' | sudo -S bash -c '$1'"
+}
+
+# SSH命令函数（普通用户）
 ssh_exec() {
     sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP "$1"
 }
@@ -54,25 +59,39 @@ else
     exit 1
 fi
 
-# 1. 拉取最新代码
+# 1. 修复Docker权限
+log_info "修复Docker权限..."
+ssh_sudo "usermod -aG docker $SSH_USER"
+ssh_sudo "echo '$SSH_USER ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers 2>/dev/null || true"
+ssh_sudo "chmod 666 /var/run/docker.sock"
+log_info "Docker权限修复完成"
+
+# 2. 拉取最新代码
 log_info "正在拉取最新代码..."
 ssh_exec "cd $PROJECT_DIR && git pull"
 
-# 2. 停止现有服务
+# 3. 停止现有服务
 log_info "停止现有服务..."
-ssh_exec "cd $PROJECT_DIR && docker-compose down"
+ssh_sudo "cd $PROJECT_DIR && docker-compose down 2>/dev/null || true"
 
-# 3. 清理Docker缓存和旧镜像
-log_info "清理Docker缓存..."
-ssh_exec "docker system prune -f"
+# 4. 完全清理Docker
+log_info "完全清理Docker..."
+ssh_sudo "docker-compose down -v 2>/dev/null || true"
+ssh_sudo "docker system prune -a -f --volumes"
+ssh_sudo "docker volume prune -f"
 
-# 4. 生成安全密钥（如果.env不存在或使用默认值）
+# 5. 删除旧镜像
+log_info "删除旧镜像..."
+ssh_sudo "docker rmi campus-surveillance-system-front-backend 2>/dev/null || true"
+ssh_sudo "docker rmi campus-surveillance-system-ai-end 2>/dev/null || true"
+
+# 6. 生成安全密钥
 log_info "配置环境变量..."
-ssh_exec "cd $PROJECT_DIR && bash generate-secrets.sh > /tmp/secrets.txt"
+ssh_exec "cd $PROJECT_DIR && bash generate-secrets.sh > /tmp/secrets.txt 2>/dev/null || true"
 
-# 5. 检查并配置.env文件
+# 7. 检查并配置.env文件
 log_info "检查环境变量配置..."
-ENV_CHECK=$(ssh_exec "cd $PROJECT_DIR && grep -c 'your_secure' .env || true")
+ENV_CHECK=$(ssh_sudo "cd $PROJECT_DIR && grep -c 'your_secure' .env 2>/dev/null || echo 0")
 if [ "$ENV_CHECK" -gt 0 ]; then
     log_warning "检测到默认密钥，正在生成新密钥..."
     
@@ -83,49 +102,67 @@ if [ "$ENV_CHECK" -gt 0 ]; then
     ADMIN_PASSWORD=$(openssl rand -base64 12)
     
     # 更新.env文件
-    ssh_exec "cd $PROJECT_DIR && sed -i 's/JWT_SECRET=.*/JWT_SECRET=$JWT_SECRET/' .env"
-    ssh_exec "cd $PROJECT_DIR && sed -i 's/HMAC_KEY=.*/HMAC_KEY=$HMAC_KEY/' .env"
-    ssh_exec "cd $PROJECT_DIR && sed -i 's/MYSQL_ROOT_PASSWORD=.*/MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD/' .env"
-    ssh_exec "cd $PROJECT_DIR && sed -i 's/ADMIN_PASSWORD=.*/ADMIN_PASSWORD=$ADMIN_PASSWORD/' .env"
+    ssh_sudo "cd $PROJECT_DIR && sed -i 's/JWT_SECRET=.*/JWT_SECRET=$JWT_SECRET/' .env"
+    ssh_sudo "cd $PROJECT_DIR && sed -i 's/HMAC_KEY=.*/HMAC_KEY=$HMAC_KEY/' .env"
+    ssh_sudo "cd $PROJECT_DIR && sed -i 's/MYSQL_ROOT_PASSWORD=.*/MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD/' .env"
+    ssh_sudo "cd $PROJECT_DIR && sed -i 's/ADMIN_PASSWORD=.*/ADMIN_PASSWORD=$ADMIN_PASSWORD/' .env"
     
     log_info "新密钥已配置"
 fi
 
-# 6. 重新构建镜像
+# 8. 重新构建镜像
 log_info "开始构建Docker镜像（这可能需要20-30分钟）..."
-ssh_exec "cd $PROJECT_DIR && docker-compose build --no-cache"
+ssh_sudo "cd $PROJECT_DIR && docker-compose build --no-cache --parallel"
 
-# 7. 启动服务
+# 9. 启动服务
 log_info "启动服务..."
-ssh_exec "cd $PROJECT_DIR && docker-compose up -d"
+ssh_sudo "cd $PROJECT_DIR && docker-compose up -d"
 
-# 8. 等待服务启动
+# 10. 等待服务启动
 log_info "等待服务启动（60秒）..."
 sleep 60
 
-# 9. 检查服务状态
+# 11. 检查服务状态
 log_info "检查服务状态..."
-ssh_exec "cd $PROJECT_DIR && docker-compose ps"
+ssh_sudo "cd $PROJECT_DIR && docker-compose ps"
 
-# 10. 检查服务健康状态
+# 12. 检查容器健康状态
 log_info "检查容器健康状态..."
-ssh_exec "cd $PROJECT_DIR && docker-compose ps --format 'table {{.Name}}\t{{.Status}}'"
+ssh_sudo "cd $PROJECT_DIR && docker-compose ps --format 'table {{.Name}}\t{{.Status}}'"
 
-# 11. 查看日志
-log_info "查看服务日志..."
-ssh_exec "cd $PROJECT_DIR && docker-compose logs --tail=30"
+# 13. 查看front-backend日志（重点）
+log_info "查看front-backend服务日志..."
+ssh_sudo "cd $PROJECT_DIR && docker-compose logs front-backend --tail=50"
 
-# 12. 测试Web访问
+# 14. 查看所有服务日志
+log_info "查看所有服务日志..."
+ssh_sudo "cd $PROJECT_DIR && docker-compose logs --tail=30"
+
+# 15. 检查端口占用
+log_info "检查端口占用..."
+ssh_sudo "netstat -tlnp | grep -E '8088|3000|1515|3306' || echo '端口检查完成'"
+
+# 16. 测试Web访问
 log_info "测试Web访问..."
-HTTP_CODE=$(ssh_exec "curl -s -o /dev/null -w '%{http_code}' http://localhost:8088 || echo '000'")
+HTTP_CODE=$(ssh_sudo "curl -s -o /dev/null -w '%{http_code}' http://localhost:8088 || echo '000'")
 if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "304" ]; then
     log_info "Web服务正常运行 (HTTP $HTTP_CODE)"
 else
-    log_warning "Web服务响应异常 (HTTP $HTTP_CODE)"
+    log_warning "Web服务响应异常 (HTTP $HTTP_CODE)，查看详细日志..."
+    ssh_sudo "cd $PROJECT_DIR && docker-compose logs front-backend --tail=100"
 fi
 
-# 13. 获取管理员密码
-ADMIN_PASS=$(ssh_exec "cd $PROJECT_DIR && grep ADMIN_PASSWORD .env | cut -d'=' -f2")
+# 17. 获取管理员密码
+ADMIN_PASS=$(ssh_sudo "cd $PROJECT_DIR && grep ADMIN_PASSWORD .env | cut -d'=' -f2")
+
+# 18. 检查MySQL连接
+log_info "检查MySQL连接..."
+MYSQL_STATUS=$(ssh_sudo "cd $PROJECT_DIR && docker-compose exec -T mysql mysqladmin ping -h localhost -uroot -p\$MYSQL_ROOT_PASSWORD 2>&1 || echo 'failed'")
+if echo "$MYSQL_STATUS" | grep -q "alive"; then
+    log_info "MySQL连接正常"
+else
+    log_warning "MySQL连接可能有问题"
+fi
 
 # 部署完成信息
 echo ""
@@ -139,13 +176,15 @@ echo ""
 echo "⚠️  请妥善保存密码信息！"
 echo ""
 echo "常用命令:"
-echo "  查看状态: ssh $SSH_USER@$SERVER_IP 'cd $PROJECT_DIR && docker-compose ps'"
-echo "  查看日志: ssh $SSH_USER@$SERVER_IP 'cd $PROJECT_DIR && docker-compose logs -f'"
-echo "  重启服务: ssh $SSH_USER@$SERVER_IP 'cd $PROJECT_DIR && docker-compose restart'"
+echo "  查看状态: cd $PROJECT_DIR && sudo docker-compose ps"
+echo "  查看日志: cd $PROJECT_DIR && sudo docker-compose logs -f"
+echo "  重启服务: cd $PROJECT_DIR && sudo docker-compose restart"
 echo ""
+echo "如果front-backend仍有问题，请查看:"
+echo "  sudo docker-compose logs front-backend --tail=100"
 echo "=========================================="
 
-# 14. 保存部署信息
+# 19. 保存部署信息
 cat > /tmp/deployment_info.txt <<EOF
 园区监控系统部署信息
 ==========================================
@@ -159,6 +198,7 @@ cat > /tmp/deployment_info.txt <<EOF
 1. 请妥善保管管理员密码
 2. 首次登录后建议立即修改密码
 3. 定期备份数据库数据
+4. 如有问题请查看: sudo docker-compose logs front-backend
 ==========================================
 EOF
 
