@@ -49,7 +49,7 @@ export class UserService {
 
   async createUser(userData: Partial<User>): Promise<User> {
     if (!userData.password) throw new Error('Password required');
-    const hmacResult = hmacSha256(userData.password);
+    const hmacResult = this.hmacSha256(userData.password);
     const hashedPassword = await bcrypt.hash(hmacResult, 10);
     return await this.userRepo.save({
       ...userData,
@@ -70,7 +70,7 @@ export class UserService {
   async updateUser(user: Partial<User>) {
     if (!user.username) return;
     if (user.password && !user.password.startsWith('$2')) {
-      const hmacResult = hmacSha256(user.password);
+      const hmacResult = this.hmacSha256(user.password);
       user.password = await bcrypt.hash(hmacResult, 10);
     }
     await this.userRepo.update({ username: user.username }, user);
@@ -78,7 +78,7 @@ export class UserService {
 
   async addUser(user: Partial<User>) {
     if (user.password && !user.password.startsWith('$2')) {
-      const hmacResult = hmacSha256(user.password);
+      const hmacResult = this.hmacSha256(user.password);
       user.password = await bcrypt.hash(hmacResult, 10);
     }
     return await this.userRepo.save(user);

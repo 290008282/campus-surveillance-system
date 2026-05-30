@@ -35,6 +35,9 @@ export class Camera {
   @Column({ name: 'map_longitude', type: 'double' })
   longitude: number;
 
+  @Column({ default: '' })
+  model: string;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
