@@ -28,13 +28,12 @@ import * as crypto from 'crypto';
         password: configService.get('MYSQL_PASSWORD'),
         synchronize: configService.get('NODE_ENV') !== 'production',
         autoLoadEntities: true,
-        timezone: configService.get('TZ', 'Asia/Shanghai'),
         logging: configService.get('NODE_ENV') !== 'production',
         // Database connection pool configuration
-        poolSize: 10,
-        connectTimeout: 30000,
-        acquireTimeout: 60000,
-        idleTimeout: 300000,
+        extra: {
+          connectionLimit: 10,
+          connectTimeout: 30000,
+        },
       }),
     }),
     TypeOrmModule.forFeature([User, AlarmRule, MapConfig]),
@@ -83,13 +82,19 @@ export class AppModule {
         password: process.env.MYSQL_PASSWORD || 'root',
         entities: [User, AlarmRule, MapConfig, Camera, AlarmEvent],
         synchronize: process.env.NODE_ENV !== 'production',
-        timezone: process.env.TZ || 'Asia/Shanghai',
+        extra: {
+          connectionLimit: 10,
+          connectTimeout: 30000,
+        },
       });
 
       await dataSource.initialize();
 
       // Reset all cameras to offline on startup (ai-end will reconnect)
-      await dataSource.getRepository(Camera).update({}, { online: false });
+      await dataSource.createQueryBuilder()
+        .update(Camera)
+        .set({ online: false })
+        .execute();
       console.log('[Init] Reset all cameras to offline status');
 
       const adminExists = await dataSource.getRepository(User).findOne({
