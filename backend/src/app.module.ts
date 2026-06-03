@@ -81,7 +81,8 @@ export class AppModule {
         username: process.env.MYSQL_USER || 'root',
         password: process.env.MYSQL_PASSWORD || 'root',
         entities: [User, AlarmRule, MapConfig, Camera, AlarmEvent],
-        synchronize: process.env.NODE_ENV !== 'production',
+        // Always synchronize for init to ensure tables exist
+        synchronize: true,
         extra: {
           connectionLimit: 10,
           connectTimeout: 30000,
@@ -91,11 +92,20 @@ export class AppModule {
       await dataSource.initialize();
 
       // Reset all cameras to offline on startup (ai-end will reconnect)
-      await dataSource.createQueryBuilder()
-        .update(Camera)
-        .set({ online: false })
-        .execute();
-      console.log('[Init] Reset all cameras to offline status');
+      try {
+        const cameraCount = await dataSource.getRepository(Camera).count();
+        if (cameraCount > 0) {
+          await dataSource.createQueryBuilder()
+            .update(Camera)
+            .set({ online: false })
+            .execute();
+          console.log(`[Init] Reset ${cameraCount} cameras to offline status`);
+        } else {
+          console.log('[Init] No cameras to reset');
+        }
+      } catch (e) {
+        console.warn('[Init] Camera reset skipped:', (e as Error).message);
+      }
 
       const adminExists = await dataSource.getRepository(User).findOne({
         where: { username: 'admin' }
