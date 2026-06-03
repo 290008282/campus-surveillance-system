@@ -3,7 +3,6 @@ import zhCN from 'antd/locale/zh_CN';
 
 export default defineConfig({
   plugins: ['@umijs/plugins/dist/antd', '@umijs/plugins/dist/locale'],
-  mpa: {}, // Change from boolean to object to fix UmiJS 4.x validation error
   routes: [
     { path: '/', component: '@/pages/index', layout: false },
     { path: '/login', component: '@/pages/login', layout: false },
