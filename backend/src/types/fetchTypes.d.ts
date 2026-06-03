@@ -429,7 +429,7 @@ export interface FetchTypes {
       message: string;
       success: boolean;
     };
-  }
+  };
 
   'GET /api/ai/getAllCameraList': {
     req: {
