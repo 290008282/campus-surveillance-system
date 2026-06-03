@@ -118,6 +118,15 @@ export class UserController {
     return {};
   }
 
+  @Post('/api/user/batchResolveAlarm')
+  async batchResolveAlarm(
+    @Body('eventIDs')
+    eventIDs: FetchTypes['POST /api/user/batchResolveAlarm']['req']['eventIDs'],
+  ): Promise<FetchTypes['POST /api/user/batchResolveAlarm']['res']['data']> {
+    await this.alarmEventService.batchResolve(eventIDs);
+    return {};
+  }
+
   @Get('/api/user/getAlarmEvents')
   async getAlarmEvents(
     @Query()

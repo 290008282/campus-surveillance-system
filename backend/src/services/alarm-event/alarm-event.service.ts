@@ -70,6 +70,16 @@ export class AlarmEventService {
     await this.alarmEventRepo.update({ id }, { resolved: true });
   }
 
+  async batchResolve(ids: number[]) {
+    if (!ids || ids.length === 0) return;
+    await this.alarmEventRepo
+      .createQueryBuilder()
+      .update()
+      .set({ resolved: true })
+      .whereInIds(ids)
+      .execute();
+  }
+
   async addEvent(event: Partial<AlarmEvent>) {
     return await this.alarmEventRepo.save(event);
   }

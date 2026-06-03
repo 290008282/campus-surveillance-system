@@ -72,6 +72,10 @@ export interface FetchTypes {
     req: { eventID: number };
     res: { success: boolean; message: string; data: {} };
   };
+  'POST /api/user/batchResolveAlarm': {
+    req: { eventIDs: number[] };
+    res: { success: boolean; message: string; data: {} };
+  };
   'GET /api/user/getAlarmEvents': {
     req: {
       cameraID?: number;

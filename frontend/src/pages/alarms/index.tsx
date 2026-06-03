@@ -34,6 +34,10 @@ interface FormData {
 }
 
 const Alarms: FC = () => {
+  // ---- Batch selection state ----
+  const [selectedRowKeys, setSelectedRowKeys] = useState<number[]>([]);
+  const [batchLoading, setBatchLoading] = useState(false);
+
   const columns: Array<ColumnType<TableData>> = [
     {
       title: '事件ID',
@@ -92,6 +96,8 @@ const Alarms: FC = () => {
           pageSize: params.pageSize,
           ...formData,
         });
+        // Clear selection when page data changes
+        setSelectedRowKeys([]);
         return {
           total: res.data.total,
           list: res.data.list,
@@ -111,6 +117,8 @@ const Alarms: FC = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalContext, setModalContext] = useState<TableData | null>(null);
   const [checkLoading, setCheckLoading] = useState(false);
+
+  // ---- Single alarm resolve ----
   const handleCheck = async (eventID: number) => {
     try {
       setCheckLoading(true);
@@ -124,6 +132,45 @@ const Alarms: FC = () => {
     } finally {
       setCheckLoading(false);
     }
+  };
+
+  // ---- Batch alarm resolve ----
+  const handleBatchResolve = async () => {
+    if (selectedRowKeys.length === 0) {
+      message.warning('请先勾选需要处理的报警事件');
+      return;
+    }
+    Modal.confirm({
+      title: '批量处理确认',
+      content: `确认将选中的 ${selectedRowKeys.length} 条报警事件标记为已处理？`,
+      okText: '确认处理',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          setBatchLoading(true);
+          await services['POST /api/user/batchResolveAlarm']({
+            eventIDs: selectedRowKeys,
+          });
+          message.success(`已成功处理 ${selectedRowKeys.length} 条报警事件`);
+          setSelectedRowKeys([]);
+          refreshAsync();
+        } catch (error) {
+          message.error(String(error));
+          console.error(error);
+        } finally {
+          setBatchLoading(false);
+        }
+      },
+    });
+  };
+
+  // Row selection config
+  const rowSelection = {
+    selectedRowKeys,
+    onChange: (keys: React.Key[]) => setSelectedRowKeys(keys as number[]),
+    getCheckboxProps: (record: TableData) => ({
+      disabled: record.resolved, // Cannot re-process an already-resolved alarm
+    }),
   };
 
   return (
@@ -157,7 +204,33 @@ const Alarms: FC = () => {
             </Form.Item>
           </Form>
 
-          <Table columns={columns} rowKey="eventID" {...tableProps} />
+          {/* Batch action toolbar */}
+          <div style={{ margin: '12px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Button
+              type="primary"
+              danger
+              disabled={selectedRowKeys.length === 0}
+              loading={batchLoading}
+              onClick={handleBatchResolve}
+            >
+              批量处理 {selectedRowKeys.length > 0 ? `(${selectedRowKeys.length})` : ''}
+            </Button>
+            {selectedRowKeys.length > 0 && (
+              <Button onClick={() => setSelectedRowKeys([])}>取消选择</Button>
+            )}
+            {selectedRowKeys.length > 0 && (
+              <span style={{ color: '#888', fontSize: 13 }}>
+                已选 {selectedRowKeys.length} 条未处理事件
+              </span>
+            )}
+          </div>
+
+          <Table
+            columns={columns}
+            rowKey="eventID"
+            rowSelection={rowSelection}
+            {...tableProps}
+          />
         </Card>
 
         <Modal

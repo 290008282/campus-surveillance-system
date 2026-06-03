@@ -11,7 +11,6 @@ from datetime import datetime
 
 class WSClient:
     __SHA256KEY = "campus-surveillance-system".encode("utf-8")
-    sio = socketio.AsyncClient(reconnection=False)
     wsServerUrl = None
     rtmpServerUrl = None
 
@@ -52,6 +51,11 @@ class WSClient:
 
     context = {}
 
+    # Reconnect control
+    _reconnect_interval = 5   # seconds between reconnect attempts
+    _max_reconnect_wait = 60  # max back-off ceiling in seconds
+    _stop_reconnect = False   # set to True to stop reconnect loop permanently
+
     def __init__(
         self,
         wsServerUrl: str,
@@ -74,14 +78,15 @@ class WSClient:
         self.onReady = onReady
         self.context = context
 
-        self.sio.on("cameraConfigChange", self.onCameraConfigChange)
+        # Re-create sio instance per WSClient so handlers are isolated
+        self.sio = socketio.AsyncClient(reconnection=False, logger=False, engineio_logger=False)
 
+        self.sio.on("cameraConfigChange", self.onCameraConfigChange)
         self.sio.on("connect", self.onConnect)
         self.sio.on("disconnect", self.onDisconnect)
         self.sio.on("connect_error", self.onConnectError)
 
         print(f"ws client for camera {cameraID} created")
-        pass
 
     async def connect(self):
         if self.connected:
@@ -97,12 +102,10 @@ class WSClient:
             self.wsServerUrl, socketio_path="/ws/ai/socket.io", headers={"data": data}
         )
         self.connected = True
-        pass
 
     async def sendMessage(self, msg):
         await self.sio.emit("message", msg)
         print("message sent")
-        pass
 
     def matchAlarmRule(self, data):
         """
@@ -175,18 +178,20 @@ class WSClient:
             )
             self.alarmThrottle[rule["id"]] = datetime.now()
             print(f"camera {self.cameraID} alarm sent: {rule['name']}")
-            pass
-
-        pass
 
     async def disconnect(self):
+        self._stop_reconnect = True
         await self.sio.disconnect()
-        pass
 
     async def onCameraConfigChange(self, data):
         if self.rtspUrl is not None and self.rtspUrl != data["rtspUrl"]:
-            print(f"Camera {self.cameraID} rtsp url changed, disconnecting...")
-            await self.disconnect()
+            print(f"Camera {self.cameraID} rtsp url changed, reconnecting...")
+            # Update rtspUrl first so onReady() uses the new URL after reconnect
+            self.rtspUrl = data["rtspUrl"]
+            self.alarmRules = data["alarmRules"]
+            # Trigger disconnect; stayConnected loop will reconnect automatically
+            self.ready = False
+            await self.sio.disconnect()
             return
 
         self.rtspUrl = data["rtspUrl"]
@@ -197,23 +202,43 @@ class WSClient:
             self.ready = True
             asyncio.get_event_loop().create_task(self.onReady(self))
 
-        pass
-
     async def stayConnected(self):
-        await self.connect()
-        await self.sio.wait()
-        pass
+        """
+        Keep trying to connect, and reconnect whenever disconnected.
+        Uses exponential back-off up to _max_reconnect_wait seconds.
+        """
+        wait = self._reconnect_interval
+        while not self._stop_reconnect:
+            try:
+                if not self.connected:
+                    print(f"Camera {self.cameraID}: connecting to server...")
+                    await self.connect()
+                    wait = self._reconnect_interval  # reset back-off on success
+                # While connected, just wait for events
+                await self.sio.wait()
+            except Exception as e:
+                print(f"Camera {self.cameraID}: connection error: {e}")
+
+            if self._stop_reconnect:
+                break
+
+            self.connected = False
+            self.ready = False
+            print(f"Camera {self.cameraID}: disconnected. Reconnecting in {wait}s...")
+            await asyncio.sleep(wait)
+            # Exponential back-off
+            wait = min(wait * 2, self._max_reconnect_wait)
+
+        print(f"Camera {self.cameraID}: stayConnected loop exited.")
 
     def onConnect(self):
         print(f"connection for camera {self.cameraID} established")
-        pass
 
     def onDisconnect(self):
         print(f"camera {self.cameraID} disconnected from server")
         self.connected = False
         self.ready = False
-        pass
 
     def onConnectError(self, err):
-        print(err)
-        pass
+        print(f"camera {self.cameraID} connect error: {err}")
+        self.connected = False
