@@ -190,10 +190,16 @@ export class AiEndGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   async handleDisconnect(@ConnectedSocket() client: Socket) {
-    this.connectedClients.delete(client.data.cameraID);
+    // Guard: client.data may be undefined if authentication failed before data was assigned
+    const data = client.data as (ClientInfo & { user?: any }) | undefined;
+    if (!data?.cameraID) {
+      client.removeAllListeners();
+      return;
+    }
+
+    this.connectedClients.delete(data.cameraID);
     client.removeAllListeners();
 
-    const data = client.data as ClientInfo;
     await this.cameraService.updateCamera({
       id: parseInt(data.cameraID),
       online: false,

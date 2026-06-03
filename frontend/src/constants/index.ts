@@ -10,10 +10,19 @@ export default {
   FETCH_ROOT: '',
   HLS_LOWLATENCY_OPTION: {
     enableWorker: true,
-    liveSyncDurationCount: 3,
-    liveMaxLatencyDurationCount: 10,
+    // Reduced from 3→2 to lower live latency
+    liveSyncDurationCount: 2,
+    // Tighter max-latency window so the player catches up quickly
+    liveMaxLatencyDurationCount: 6,
     liveDurationInfinity: true,
-    highBufferWatchdogPeriod: 2,
-    lowLatencyMode: false,
+    // Shorter watchdog for faster stall detection
+    highBufferWatchdogPeriod: 1,
+    // Enable low-latency mode for better live responsiveness
+    lowLatencyMode: true,
+    // Back buffer: keep 4s worth; drop older segments to free memory
+    backBufferLength: 4,
+    // Max total buffer: 8s, prevents excessive buffering / stalls
+    maxBufferLength: 8,
+    maxMaxBufferLength: 16,
   },
 };
