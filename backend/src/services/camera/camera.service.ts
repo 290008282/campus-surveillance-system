@@ -2,6 +2,7 @@ import { Inject, Injectable, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Camera } from './camera.entity';
+import { randomBytes } from 'crypto';
 import { AiEndGateway } from 'src/ws-gateways/ai-end/ai-end.gateway';
 
 @Injectable()
@@ -52,6 +53,9 @@ export class CameraService {
   }
 
   async addCamera(camera: Partial<Camera>) {
+    if (!camera.code) {
+      camera.code = 'CAM' + randomBytes(4).toString('hex').toUpperCase();
+    }
     const savedCamera = await this.cameraRepo.save(camera);
 
     await this.aiEndGateway.notifyCameraConfigChange(savedCamera.id);

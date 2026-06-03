@@ -1,4 +1,5 @@
 import {
+  BeforeInsert,
   Column,
   CreateDateColumn,
   DeleteDateColumn,
@@ -9,6 +10,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { randomBytes } from 'crypto';
 import { AlarmEvent } from '../alarm-event/alarm-event.entity';
 import { AlarmRule } from '../alarm-rule/alarm-rule.entity';
 
@@ -46,6 +48,13 @@ export class Camera {
 
   @DeleteDateColumn()
   deletedAt: Date;
+
+  @BeforeInsert()
+  generateCode() {
+    if (!this.code) {
+      this.code = "CAM" + randomBytes(4).toString("hex").toUpperCase();
+    }
+  }
 
   @OneToMany(() => AlarmEvent, (alarmEvent) => alarmEvent.sourceCamera)
   @JoinColumn()
