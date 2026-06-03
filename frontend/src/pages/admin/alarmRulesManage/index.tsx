@@ -46,6 +46,20 @@ type AddFormData = Omit<EditFormData, 'alarmRuleID'>;
 type AlarmRuleFull =
   ServiceTypes['GET /api/admin/getAlarmRuleList']['res']['data'][number];
 
+/**
+ * Parse a time string (HH:mm or HH:mm:ss) into a Dayjs object.
+ * Dayjs customParseFormat plugin is not loaded, so dayjs(str, format) does NOT work.
+ * We manually extract hours/minutes/seconds instead.
+ */
+const parseTimeString = (timeStr: string): Dayjs => {
+  const parts = timeStr.split(':').map(Number);
+  return dayjs()
+    .hour(parts[0] || 0)
+    .minute(parts[1] || 0)
+    .second(parts[2] || 0)
+    .millisecond(0);
+};
+
 const AlarmRulesManage: FC = () => {
   const [alarmRuleList, setAlarmRuleList] = useState<AlarmRuleFull[]>([]);
   const [fetchLoading, setFetchLoading] = useState<boolean>(false);
@@ -102,11 +116,11 @@ const AlarmRulesManage: FC = () => {
           ...data.triggerCondition.time,
           timeRange: [
             (data.triggerCondition?.time?.timeRange?.[0] && data.triggerCondition.time.timeRange[0] !== "Invalid Date")
-              ? dayjs(data.triggerCondition.time.timeRange[0], "HH:mm:ss")
-              : dayjs("09:00:00", "HH:mm:ss"),
+              ? parseTimeString(data.triggerCondition.time.timeRange[0])
+              : parseTimeString("09:00:00"),
             (data.triggerCondition?.time?.timeRange?.[1] && data.triggerCondition.time.timeRange[1] !== "Invalid Date")
-              ? dayjs(data.triggerCondition.time.timeRange[1], "HH:mm:ss")
-              : dayjs("18:00:00", "HH:mm:ss"),
+              ? parseTimeString(data.triggerCondition.time.timeRange[1])
+              : parseTimeString("18:00:00"),
           ],
         },
       },
