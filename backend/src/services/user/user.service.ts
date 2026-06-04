@@ -36,9 +36,10 @@ export class UserService {
     const user = await this.userRepo.findOne({ where: { username } });
     if (!user) return null;
 
-    // Unified bcrypt validation for all password formats
+    // HMAC-wrap then bcrypt compare (consistent with createUser & initDefaultData)
     try {
-      const isValid = await bcrypt.compare(password, user.password);
+      const hmacResult = this.hmacSha256(password);
+      const isValid = await bcrypt.compare(hmacResult, user.password);
       if (isValid) return user;
     } catch (error) {
       console.error('Password comparison error:', error);
