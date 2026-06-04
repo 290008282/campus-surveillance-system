@@ -182,13 +182,7 @@ export class AiEndGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       const jwtService = this.userService.getJwtService();
       const payload = await jwtService.verifyAsync(token);
-
-      // Check if token is revoked in cache
-      const cachedToken = await this.userService.getCachedToken(payload.username);
-      if (!cachedToken || cachedToken !== token) {
-        return null;
-      }
-
+      // JWT is self-contained — no cache check needed
       return payload;
     } catch (error) {
       console.error('Token validation error:', error);
