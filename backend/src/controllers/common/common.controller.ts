@@ -90,19 +90,15 @@ export class CommonController {
     username?: string,
     password?: string,
   ) {
-    // Try JWT Bearer token first
+    // Try JWT Bearer token first (self-validating, no cache check needed)
     if (authHeader) {
       const [type, token] = authHeader.split(' ');
       if (type === 'Bearer' && token) {
         try {
           const jwtService = this.userService.getJwtService();
           const payload = await jwtService.verifyAsync(token);
-          const cachedToken = await this.userService.getCachedToken(
-            payload.username,
-          );
-          if (cachedToken === token) {
-            return payload;
-          }
+          // JWT is self-contained — verification succeeds = user is authenticated
+          return payload;
         } catch {
           // JWT validation failed, fall through to legacy auth
         }
