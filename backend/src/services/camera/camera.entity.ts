@@ -25,7 +25,7 @@ export class Camera {
   @Column({ name: 'status', type: 'bool', default: false })
   online: boolean;
 
-  @Column({ name: 'code' })
+  @Column({ name: 'code', unique: true })
   code: string;
 
   @Column({ name: 'rtsp_url', default: '' })
@@ -52,7 +52,7 @@ export class Camera {
   @BeforeInsert()
   generateCode() {
     if (!this.code) {
-      this.code = "CAM" + randomBytes(4).toString("hex").toUpperCase();
+      this.code = 'CAM' + randomBytes(4).toString('hex').toUpperCase();
     }
   }
 

@@ -57,20 +57,17 @@ export class CameraService {
       camera.code = 'CAM' + randomBytes(4).toString('hex').toUpperCase();
     }
     const savedCamera = await this.cameraRepo.save(camera);
-
     await this.aiEndGateway.notifyCameraConfigChange(savedCamera.id);
   }
 
   async updateCamera(camera: Partial<Camera>) {
     if (!camera.id) return;
     const savedCamera = await this.cameraRepo.save(camera);
-
     await this.aiEndGateway.notifyCameraConfigChange(savedCamera.id);
   }
 
   async deleteCamera(cameraID: number) {
     await this.cameraRepo.softDelete({ id: cameraID });
-
     await this.aiEndGateway.notifyCameraConfigChange(cameraID);
   }
 
