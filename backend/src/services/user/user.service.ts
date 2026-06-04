@@ -22,6 +22,11 @@ export class UserService {
     return this.configService.get<string>('HMAC_KEY', 'campus-surveillance-system');
   }
 
+  // Exposed for use by controllers that receive raw passwords (e.g. AI auth)
+  hmacSha256ForAuth(text: string): string {
+    return crypto.createHmac('sha256', this.getHmacKey()).update(text).digest('base64');
+  }
+
   private hmacSha256(text: string): string {
     return crypto.createHmac('sha256', this.getHmacKey()).update(text).digest('base64');
   }
@@ -36,10 +41,11 @@ export class UserService {
     const user = await this.userRepo.findOne({ where: { username } });
     if (!user) return null;
 
-    // HMAC-wrap then bcrypt compare (consistent with createUser & initDefaultData)
+    // Frontend already sends HmacSHA256(password, key) as Base64
+    // Stored hash is bcrypt(HmacSHA256(raw_password, key))
+    // So compare directly without additional HMAC
     try {
-      const hmacResult = this.hmacSha256(password);
-      const isValid = await bcrypt.compare(hmacResult, user.password);
+      const isValid = await bcrypt.compare(password, user.password);
       if (isValid) return user;
     } catch (error) {
       console.error('Password comparison error:', error);

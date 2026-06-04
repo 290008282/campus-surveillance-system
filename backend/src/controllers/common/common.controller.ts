@@ -97,7 +97,6 @@ export class CommonController {
         try {
           const jwtService = this.userService.getJwtService();
           const payload = await jwtService.verifyAsync(token);
-          // JWT is self-contained — verification succeeds = user is authenticated
           return payload;
         } catch {
           // JWT validation failed, fall through to legacy auth
@@ -106,8 +105,10 @@ export class CommonController {
     }
 
     // Fall back to legacy HMAC password auth
+    // AI service sends raw password; wrap with HMAC to match stored hash
     if (username && password) {
-      return await this.userService.authLogin(username, password);
+      const hmacPassword = this.userService.hmacSha256ForAuth(password);
+      return await this.userService.authLogin(username, hmacPassword);
     }
 
     return null;
