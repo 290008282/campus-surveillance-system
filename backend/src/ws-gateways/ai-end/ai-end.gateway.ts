@@ -102,6 +102,13 @@ export class AiEndGateway implements OnGatewayConnection, OnGatewayDisconnect {
     console.log(`notify ${cameraID} CameraConfigChange`);
   }
 
+  broadcastNewCamera(cameraConfig: { cameraID: number; rtspUrl: string }) {
+    this.wsServer.emit('newCamera', cameraConfig);
+    console.log(
+      `broadcast new camera ${cameraConfig.cameraID} to all AI clients`,
+    );
+  }
+
   async disconnectClient(cameraID: number) {
     this.connectedClients.get(cameraID.toString())?.disconnect();
   }

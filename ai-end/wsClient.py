@@ -24,6 +24,7 @@ class WSClient:
     username = None
     password = None
     cameraID = None
+    token = None
 
     rtspUrl = None
     alarmRules = None
@@ -61,6 +62,7 @@ class WSClient:
         cameraID: str,
         onReady: Any,
         context: dict = {},
+        token: str = "",
     ) -> None:
         self.wsServerUrl = wsServerUrl
         self.rtmpServerUrl = rtmpServerUrl
@@ -73,8 +75,10 @@ class WSClient:
         self.cameraID = cameraID
         self.onReady = onReady
         self.context = context
+        self.token = token
 
         self.sio.on("cameraConfigChange", self.onCameraConfigChange)
+        self.sio.on("newCamera", self.onNewCamera)
 
         self.sio.on("connect", self.onConnect)
         self.sio.on("disconnect", self.onDisconnect)
@@ -86,6 +90,9 @@ class WSClient:
     async def connect(self):
         if self.connected:
             return
+
+        # Build connection options
+        headers = {}
         data = json.dumps(
             {
                 "username": self.username,
@@ -93,8 +100,19 @@ class WSClient:
                 "cameraID": self.cameraID,
             }
         )
+
+        if self.token:
+            # JWT auth: set Authorization header
+            headers["Authorization"] = "Bearer " + self.token
+            headers["data"] = data
+        else:
+            # Legacy auth: only data header
+            headers["data"] = data
+
         await self.sio.connect(
-            self.wsServerUrl, socketio_path="/ws/ai/socket.io", headers={"data": data}
+            self.wsServerUrl,
+            socketio_path="/ws/ai/socket.io",
+            headers=headers,
         )
         self.connected = True
         pass
@@ -226,6 +244,14 @@ class WSClient:
             self.ready = True
             asyncio.get_event_loop().create_task(self.onReady(self))
 
+        pass
+
+    def onNewCamera(self, data):
+        """Handle broadcast notification of a new camera being added."""
+        print(
+            f"[Camera {self.cameraID}] New camera broadcast received: "
+            f"cameraID={data.get('cameraID')}, rtspUrl={data.get('rtspUrl')}"
+        )
         pass
 
     async def stayConnected(self):

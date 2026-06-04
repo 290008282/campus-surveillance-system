@@ -58,6 +58,10 @@ export class CameraService {
     }
     const savedCamera = await this.cameraRepo.save(camera);
     await this.aiEndGateway.notifyCameraConfigChange(savedCamera.id);
+    this.aiEndGateway.broadcastNewCamera({
+      cameraID: savedCamera.id,
+      rtspUrl: savedCamera.rtspUrl,
+    });
   }
 
   async updateCamera(camera: Partial<Camera>) {

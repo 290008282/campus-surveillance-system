@@ -3,6 +3,7 @@ import {
   Controller,
   ForbiddenException,
   Get,
+  Headers,
   Post,
   Query,
   UnauthorizedException,
@@ -47,8 +48,10 @@ export class CommonController {
   @Get('/api/ai/getOfflineCameraList')
   async getOfflineCameraList(
     @Query() data: FetchTypes['GET /api/ai/getOfflineCameraList']['req'],
+    @Headers('authorization') authHeader?: string,
   ): Promise<FetchTypes['GET /api/ai/getOfflineCameraList']['res']['data']> {
-    const user = await this.userService.authLogin(
+    const user = await this.authenticateAiRequest(
+      authHeader,
       data.adminUsername,
       data.password,
     );
@@ -63,8 +66,10 @@ export class CommonController {
   @Get('/api/ai/getAllCameraList')
   async getAllCameraList(
     @Query() data: FetchTypes['GET /api/ai/getAllCameraList']['req'],
+    @Headers('authorization') authHeader?: string,
   ): Promise<FetchTypes['GET /api/ai/getAllCameraList']['res']['data']> {
-    const user = await this.userService.authLogin(
+    const user = await this.authenticateAiRequest(
+      authHeader,
       data.adminUsername,
       data.password,
     );
@@ -74,5 +79,41 @@ export class CommonController {
     return list.map((camera) => ({
       cameraID: camera.id,
     }));
+  }
+
+  /**
+   * Authenticate AI request using JWT Bearer token or legacy HMAC password.
+   * Tries JWT first, falls back to legacy username/password HMAC auth.
+   */
+  private async authenticateAiRequest(
+    authHeader?: string,
+    username?: string,
+    password?: string,
+  ) {
+    // Try JWT Bearer token first
+    if (authHeader) {
+      const [type, token] = authHeader.split(' ');
+      if (type === 'Bearer' && token) {
+        try {
+          const jwtService = this.userService.getJwtService();
+          const payload = await jwtService.verifyAsync(token);
+          const cachedToken = await this.userService.getCachedToken(
+            payload.username,
+          );
+          if (cachedToken === token) {
+            return payload;
+          }
+        } catch {
+          // JWT validation failed, fall through to legacy auth
+        }
+      }
+    }
+
+    // Fall back to legacy HMAC password auth
+    if (username && password) {
+      return await this.userService.authLogin(username, password);
+    }
+
+    return null;
   }
 }

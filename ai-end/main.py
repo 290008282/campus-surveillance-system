@@ -10,16 +10,43 @@ import hashlib
 import hmac
 
 
-def getAllCameraIDs(httpServerUrl, adminUsername, password):
-    __SHA256KEY = "campus-surveillance-system".encode("utf-8")
-    r = requests.get(
-        httpServerUrl + "/api/ai/getAllCameraList",
-        params={
+__SHA256KEY = "campus-surveillance-system".encode("utf-8")
+
+
+def aiLogin(httpServerUrl, adminUsername, password):
+    """Login to backend and get JWT token using HMAC-hashed password."""
+    hashed_pw = base64.b64encode(
+        hmac.new(__SHA256KEY, password.encode("utf-8"), hashlib.sha256).digest()
+    ).decode("utf-8")
+    r = requests.post(
+        httpServerUrl + "/api/user/login",
+        json={"username": adminUsername, "password": hashed_pw},
+    )
+    res = r.json()
+    if not res.get("success", False):
+        raise Exception("Login failed: " + res.get("message", "unknown error"))
+    return res["data"]["token"]
+
+
+def getAllCameraIDs(httpServerUrl, adminUsername, password, token=None):
+    """Get all camera IDs. Supports JWT Bearer token or legacy HMAC auth."""
+    headers = {}
+    params = {}
+
+    if token:
+        headers["Authorization"] = "Bearer " + token
+    else:
+        params = {
             "adminUsername": adminUsername,
             "password": base64.b64encode(
                 hmac.new(__SHA256KEY, password.encode("utf-8"), hashlib.sha256).digest()
             ).decode("utf-8"),
-        },
+        }
+
+    r = requests.get(
+        httpServerUrl + "/api/ai/getAllCameraList",
+        params=params,
+        headers=headers,
     )
     res = r.json()
     if not res["success"]:
@@ -140,12 +167,14 @@ async def beginWork(ws: WSClient):
 def main(
     wsServerUrl="", rtmpServerUrl="", adminUsername="", password="",
     cameraID="", detectionInterval=0.5, modelDevice="cpu",
+    token="",
 ):
     asyncio.run(
         WSClient(
             wsServerUrl, rtmpServerUrl, adminUsername, password,
             str(cameraID), beginWork,
             {"interval": float(detectionInterval), "modelDevice": modelDevice},
+            token=token,
         ).stayConnected()
     )
 
@@ -159,17 +188,32 @@ if __name__ == "__main__":
     password = os.getenv("ADMIN_PASSWORD", "admin")
 
     RETRY_INTERVAL = 30
-    CAMERA_SYNC_INTERVAL = 60  # seconds between camera list syncs
+    CAMERA_SYNC_INTERVAL = 10  # seconds between camera list syncs (was 60)
 
+    token = None
     cameraIDs = []
 
+    # Step 1: Login and get JWT token
     while True:
         try:
             if os.getenv("CAMERA_IDS") is not None:
                 cameraIDs = os.getenv("CAMERA_IDS").split(",")
                 break
 
-            cameraIDs = getAllCameraIDs(httpServerUrl, adminUsername, password)
+            token = aiLogin(httpServerUrl, adminUsername, password)
+            print("JWT token obtained successfully")
+            break
+        except Exception as e:
+            print(f"Error logging in: {e}. Retrying in {RETRY_INTERVAL}s...")
+            time.sleep(RETRY_INTERVAL)
+
+    # Step 2: Get camera list using token
+    while True:
+        try:
+            if cameraIDs:
+                break
+
+            cameraIDs = getAllCameraIDs(httpServerUrl, adminUsername, password, token=token)
 
             if not cameraIDs:
                 print(f"No cameras found. Retrying in {RETRY_INTERVAL}s...")
@@ -178,6 +222,15 @@ if __name__ == "__main__":
 
             break
         except Exception as e:
+            # If token expired, re-login
+            if "Unauthorized" in str(e) or "401" in str(e):
+                try:
+                    print("Token may have expired, re-logging in...")
+                    token = aiLogin(httpServerUrl, adminUsername, password)
+                    print("Re-login successful")
+                    continue
+                except Exception as le:
+                    print(f"Re-login failed: {le}")
             print(f"Error getting camera list: {e}. Retrying in {RETRY_INTERVAL}s...")
             time.sleep(RETRY_INTERVAL)
 
@@ -192,7 +245,7 @@ if __name__ == "__main__":
         p = multiprocessing.Process(
             target=main,
             args=(wsServerUrl, rtmpServerUrl, adminUsername, password,
-                  cid, detectionInterval, modelDevice),
+                  cid, detectionInterval, modelDevice, token),
         )
         p.start()
         return p
@@ -226,7 +279,7 @@ if __name__ == "__main__":
         if os.getenv("CAMERA_IDS") is None and time.time() - last_sync >= CAMERA_SYNC_INTERVAL:
             last_sync = time.time()
             try:
-                latest = getAllCameraIDs(httpServerUrl, adminUsername, password)
+                latest = getAllCameraIDs(httpServerUrl, adminUsername, password, token=token)
                 latest_set = set(latest)
                 current_set = set(processes.keys())
 
@@ -241,6 +294,15 @@ if __name__ == "__main__":
                 # Note: removed cameras are kept running (will fail gracefully)
                 # to avoid disrupting active streams on accidental DB changes
             except Exception as e:
-                print(f"[Camera Sync] Error fetching camera list: {e}")
+                # If token expired, re-login
+                if "Unauthorized" in str(e) or "401" in str(e):
+                    try:
+                        print("Token expired during sync, re-logging in...")
+                        token = aiLogin(httpServerUrl, adminUsername, password)
+                        print("Re-login successful")
+                    except Exception as le:
+                        print(f"Re-login failed: {le}")
+                else:
+                    print(f"[Camera Sync] Error fetching camera list: {e}")
 
         time.sleep(5)
