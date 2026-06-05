@@ -1,4 +1,5 @@
 from typing import Any
+import os
 import socketio
 import hashlib
 import hmac
@@ -10,7 +11,7 @@ from datetime import datetime
 
 
 class WSClient:
-    __SHA256KEY = "campus-surveillance-system".encode("utf-8")
+    __SHA256KEY = os.getenv("HMAC_KEY", "campus-surveillance-system").encode("utf-8")
     sio = socketio.AsyncClient(reconnection=False)
     wsServerUrl = None
     rtmpServerUrl = None

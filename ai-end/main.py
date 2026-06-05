@@ -10,7 +10,7 @@ import hashlib
 import hmac
 
 
-__SHA256KEY = "campus-surveillance-system".encode("utf-8")
+__SHA256KEY = os.getenv("HMAC_KEY", "campus-surveillance-system").encode("utf-8")
 
 
 def aiLogin(httpServerUrl, adminUsername, password):
