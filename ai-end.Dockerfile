@@ -1,15 +1,22 @@
 # syntax=docker/dockerfile:1
 FROM python:3.10-slim
 
-ENV TZ=Asia/Shanghai
+ARG TZ=Asia/Shanghai
+ARG USE_CN_MIRROR=false
+ARG PIP_INDEX_URL=https://pypi.org/simple/
+
+ENV TZ=${TZ}
+ENV PYTHONUNBUFFERED=1
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     dpkg-reconfigure -f noninteractive tzdata
 
-# Use Aliyun mirror for bookworm (Debian 12)
-RUN echo 'deb http://mirrors.aliyun.com/debian/ bookworm main' > /etc/apt/sources.list && \
-    echo 'deb http://mirrors.aliyun.com/debian/ bookworm-updates main' >> /etc/apt/sources.list && \
-    echo 'deb http://mirrors.aliyun.com/debian-security/ bookworm-security main' >> /etc/apt/sources.list && \
-    rm -f /etc/apt/sources.list.d/*.sources 2>/dev/null; true
+# Optionally use Aliyun mirror for faster apt in China
+RUN if [ "$USE_CN_MIRROR" = "true" ]; then \
+      echo 'deb http://mirrors.aliyun.com/debian/ bookworm main' > /etc/apt/sources.list && \
+      echo 'deb http://mirrors.aliyun.com/debian/ bookworm-updates main' >> /etc/apt/sources.list && \
+      echo 'deb http://mirrors.aliyun.com/debian-security/ bookworm-security main' >> /etc/apt/sources.list && \
+      rm -f /etc/apt/sources.list.d/*.sources 2>/dev/null; \
+    fi; true
 
 # Install ffmpeg and dependencies
 RUN apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=10 && \
@@ -20,10 +27,9 @@ RUN apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=10 && \
 COPY ./ai-end /usr/share/campus-surveillance-system/ai-end
 WORKDIR /usr/share/campus-surveillance-system/ai-end
 
-# Use BuildKit cache mount to avoid re-downloading torch on every build
-# DOCKER_BUILDKIT=1 or --platform support required; cache mounts persist across builds
+# Install Python dependencies (use --build-arg PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/ in China)
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --cache-dir=/root/.cache/pip -r requirements.txt \
-    -i https://mirrors.aliyun.com/pypi/simple/ --timeout 60
+    -i ${PIP_INDEX_URL} --timeout 120
 
 CMD ["python3", "main.py"]

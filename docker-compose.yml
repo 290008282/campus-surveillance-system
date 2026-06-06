@@ -17,11 +17,15 @@ services:
       retries: 5
     networks:
       - campus-network
+    restart: unless-stopped
 
   front-backend:
     build:
       context: .
       dockerfile: front-backend.Dockerfile
+      args:
+        USE_CN_MIRROR: ${USE_CN_MIRROR:-false}
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org}
     container_name: campus-front-backend
     shm_size: '1g'
     environment:
@@ -33,13 +37,13 @@ services:
       JWT_SECRET: ${JWT_SECRET:-campus-secret-key-change-in-production}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-30d}
       PUBLIC_DIR_ABSOLUTE_PATH: /var/www/html/public
-      HMAC_KEY: ${HMAC_KEY:-campus-surveillance-system}
+      HMAC_KEY: ${HMAC_KEY:-FcQS05HqTFdLJwqKX+JvpF+CmWp+oN6kifSTkSEWr0o=}
       NODE_ENV: ${NODE_ENV:-production}
       TZ: ${TZ:-Asia/Shanghai}
     ports:
       - "${WEB_PORT:-8088}:80"
       - "${API_PORT:-3000}:3000"
-      - "${RTMP_PORT:-1515}:1935"
+      - "${RTMP_PORT:-1515}:1515"
     depends_on:
       mysql:
         condition: service_healthy
@@ -51,21 +55,21 @@ services:
         limits:
           cpus: '2'
           memory: 2G
-        reservations:
-          cpus: '0.5'
-          memory: 512M
 
   ai-end:
     build:
       context: .
       dockerfile: ai-end.Dockerfile
+      args:
+        USE_CN_MIRROR: ${USE_CN_MIRROR:-false}
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple/}
     container_name: campus-ai-end
     environment:
       HTTP_SERVER_URL: ${HTTP_SERVER_URL:-http://front-backend:3000}
       RTMP_SERVER_URL: ${RTMP_SERVER_URL:-rtmp://front-backend:1515/live}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
-      HMAC_KEY: ${HMAC_KEY:-campus-surveillance-system}
+      HMAC_KEY: ${HMAC_KEY:-FcQS05HqTFdLJwqKX+JvpF+CmWp+oN6kifSTkSEWr0o=}
       DETECTION_INTERVAL: ${DETECTION_INTERVAL:-0.5}
       MODEL_DEVICE: ${MODEL_DEVICE:-cpu}
       TZ: ${TZ:-Asia/Shanghai}
@@ -79,9 +83,6 @@ services:
         limits:
           cpus: '2'
           memory: 2G
-        reservations:
-          cpus: '0.5'
-          memory: 512M
 
 volumes:
   mysql_data:
