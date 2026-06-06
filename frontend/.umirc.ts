@@ -3,6 +3,7 @@ import zhCN from 'antd/locale/zh_CN';
 
 export default defineConfig({
   plugins: ['@umijs/plugins/dist/antd', '@umijs/plugins/dist/locale'],
+  // mpa: {}, // disabled - use SPA mode with hash routing
   routes: [
     { path: '/', component: '@/pages/index', layout: false },
     { path: '/login', component: '@/pages/login', layout: false },
@@ -24,7 +25,139 @@ export default defineConfig({
   ],
   clientLoader: {},
   npmClient: 'pnpm',
-  antd: { configProvider: { locale: zhCN } },
+  antd: {
+    configProvider: {
+      locale: zhCN,
+      theme: {
+        token: {
+          colorPrimary: '#00D4FF',
+          colorInfo: '#00D4FF',
+          colorSuccess: '#10B981',
+          colorWarning: '#F59E0B',
+          colorError: '#EF4444',
+          colorBgContainer: '#131C2E',
+          colorBgElevated: '#1A2540',
+          colorBgLayout: '#0B1120',
+          borderRadius: 6,
+          borderRadiusLG: 10,
+          borderRadiusSM: 4,
+          colorBorder: '#1E2D42',
+          colorBorderSecondary: '#162033',
+          fontSize: 14,
+          controlHeight: 36,
+          controlHeightLG: 42,
+          fontFamily:
+            "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif",
+          boxShadow:
+            '0 2px 8px rgba(0,0,0,0.3), 0 1px 4px rgba(0,0,0,0.2)',
+          boxShadowSecondary:
+            '0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3)',
+          colorTextHeading: '#E2E8F0',
+          colorText: '#CBD5E1',
+          colorTextSecondary: '#64748B',
+          colorTextTertiary: '#475569',
+          motion: true,
+          motionDurationMid: '0.2s',
+          motionDurationSlow: '0.3s',
+        },
+        components: {
+          Layout: {
+            headerBg: '#0F1729',
+            siderBg: '#0F1729',
+            bodyBg: '#0B1120',
+            headerHeight: 56,
+          },
+          Menu: {
+            itemBg: 'transparent',
+            itemBorderRadius: 6,
+            itemMarginBlock: 2,
+            itemMarginInline: 8,
+            itemPaddingInline: 12,
+            itemSelectedBg: 'rgba(0, 212, 255, 0.1)',
+            itemSelectedColor: '#00D4FF',
+            itemHoverBg: 'rgba(0, 212, 255, 0.05)',
+            itemHoverColor: '#00D4FF',
+            itemHeight: 40,
+            iconSize: 16,
+            iconMargin: 10,
+            subMenuItemBg: 'transparent',
+            itemActiveBg: 'rgba(0, 212, 255, 0.12)',
+            darkItemSelectedBg: 'rgba(0, 212, 255, 0.1)',
+            darkItemSelectedColor: '#00D4FF',
+          },
+          Table: {
+            headerBg: '#0F1729',
+            headerColor: '#64748B',
+            headerSplitColor: 'transparent',
+            rowHoverBg: 'rgba(0, 212, 255, 0.04)',
+            borderColor: '#1E2D42',
+            cellPaddingBlock: 12,
+            cellPaddingInline: 16,
+            fontSize: 13,
+            colorBgContainer: '#131C2E',
+          },
+          Card: {
+            paddingLG: 20,
+            headerFontSize: 15,
+            borderRadiusLG: 10,
+            colorBgContainer: '#131C2E',
+          },
+          Button: {
+            borderRadius: 6,
+            controlHeight: 36,
+            controlHeightLG: 42,
+            fontWeight: 600,
+            primaryShadow: '0 0 12px rgba(0, 212, 255, 0.3)',
+            defaultBorderColor: '#1E2D42',
+            defaultColor: '#94A3B8',
+          },
+          Input: {
+            borderRadius: 6,
+            controlHeight: 36,
+            colorBgContainer: '#0F1729',
+            colorBorder: '#1E2D42',
+            activeBorderColor: '#00D4FF',
+            hoverBorderColor: '#2A3F5F',
+            activeShadow: '0 0 0 2px rgba(0, 212, 255, 0.15)',
+          },
+          Select: {
+            borderRadius: 6,
+            controlHeight: 36,
+            colorBgContainer: '#0F1729',
+            optionSelectedBg: 'rgba(0, 212, 255, 0.1)',
+          },
+          Modal: {
+            borderRadiusLG: 12,
+            colorBgElevated: '#1A2540',
+            headerBg: '#1A2540',
+          },
+          Form: {
+            labelColor: '#94A3B8',
+          },
+          Descriptions: {
+            labelBg: '#0F1729',
+          },
+          Pagination: {
+            borderRadius: 4,
+            itemActiveBg: '#00D4FF',
+            itemBg: 'transparent',
+          },
+          Tag: {
+            borderRadiusSM: 3,
+          },
+          Badge: {
+            colorText: '#CBD5E1',
+          },
+          Popconfirm: {
+            colorBgElevated: '#1A2540',
+          },
+          Dropdown: {
+            colorBgElevated: '#1A2540',
+          },
+        },
+      },
+    },
+  },
   locale: { default: 'zh-CN', antd: false, baseSeparator: '-' },
   publicPath: process.env.NODE_ENV === 'production' ? './' : '/',
   history: { type: 'hash' },

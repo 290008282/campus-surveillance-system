@@ -11,7 +11,7 @@ class YOLOModel:
         self.device = device
         self.__model = YOLO(model="./yolov8n.pt", task="detect")
 
-    def detectImage(self, image, classList=[0, 2]):
+    def detectImage(self, image, classList=[0, 2], imgsz=640):
         result = self.__model.predict(
             source=image,
             verbose=False,
@@ -19,6 +19,7 @@ class YOLOModel:
             line_thickness=1,
             classes=classList,
             device=self.device,
+            imgsz=imgsz,
         )[0]
         result.clsCount = self.getResultClsCount(result)
         return result

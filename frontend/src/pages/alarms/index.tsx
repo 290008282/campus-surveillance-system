@@ -40,6 +40,7 @@ interface FormData {
 const Alarms: FC = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState<number[]>([]);
   const [batchLoading, setBatchLoading] = useState(false);
+  const [pageSize, setPageSize] = useState(10);
 
   const columns: Array<ColumnType<TableData>> = [
     {
@@ -173,7 +174,7 @@ const Alarms: FC = () => {
     <Spin spinning={loading}>
       <div className={Styles.content}>
         <Card title="异常报警记录查询">
-          <Form form={form} layout="inline">
+          <Form form={form} layout="inline" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center' }}>
             <Form.Item name="alarmType" label="报警类型">
               <Input />
             </Form.Item>
@@ -198,42 +199,37 @@ const Alarms: FC = () => {
                 重置
               </Button>
             </Form.Item>
-          </Form>
 
-          <div style={{ margin: '12px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Space>
-              <Button
-                icon={<CheckOutlined />}
-                onClick={handleBatchResolve}
-                loading={batchLoading}
-                disabled={selectedRowKeys.length === 0}
-              >
-                {selectedRowKeys.length > 0
-                  ? `处理选中 (${selectedRowKeys.length})`
-                  : '全部处理'}
-              </Button>
-              <Popconfirm
-                title={`确定删除选中的 ${selectedRowKeys.length} 条报警？`}
-                onConfirm={handleBatchDelete}
-                okText="确定"
-                cancelText="取消"
-              >
+            <Form.Item style={{ marginLeft: 'auto' }}>
+              <Space>
                 <Button
-                  icon={<DeleteOutlined />}
-                  danger
+                  icon={<CheckOutlined />}
+                  onClick={handleBatchResolve}
                   loading={batchLoading}
                   disabled={selectedRowKeys.length === 0}
                 >
-                  删除选中 ({selectedRowKeys.length})
+                  {selectedRowKeys.length > 0
+                    ? `处理选中 (${selectedRowKeys.length})`
+                    : '全部处理'}
                 </Button>
-              </Popconfirm>
-            </Space>
-            {selectedRowKeys.length > 0 && (
-              <span style={{ color: '#999' }}>
-                已选择 {selectedRowKeys.length} 条
-              </span>
-            )}
-          </div>
+                <Popconfirm
+                  title={`确定删除选中的 ${selectedRowKeys.length} 条报警？`}
+                  onConfirm={handleBatchDelete}
+                  okText="确定"
+                  cancelText="取消"
+                >
+                  <Button
+                    icon={<DeleteOutlined />}
+                    danger
+                    loading={batchLoading}
+                    disabled={selectedRowKeys.length === 0}
+                  >
+                    删除选中 ({selectedRowKeys.length})
+                  </Button>
+                </Popconfirm>
+              </Space>
+            </Form.Item>
+          </Form>
 
           <Table
             columns={columns}
@@ -243,6 +239,16 @@ const Alarms: FC = () => {
               onChange: (keys) => setSelectedRowKeys(keys as number[]),
             }}
             {...tableProps}
+            pagination={{
+              ...tableProps.pagination,
+              pageSize: pageSize,
+              pageSizeOptions: ['10', '50', '100'],
+              showSizeChanger: true,
+              showTotal: (total) => `共 ${total} 条`,
+              onShowSizeChange: (_current, size) => {
+                setPageSize(size);
+              },
+            }}
           />
         </Card>
 

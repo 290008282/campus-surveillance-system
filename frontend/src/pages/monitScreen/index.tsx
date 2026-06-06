@@ -48,7 +48,7 @@ const MonitScreen: FC = () => {
             align: 'center',
             pageSizeOptions: [6, 12, 18, 24],
             showSizeChanger: true,
-            showTotal: (total) => `共 ${total} 条`,
+            showTotal: (total) => `共 ${total} 个摄像头`,
             onChange: () => {
               setUpdate(!update);
             },
@@ -59,9 +59,10 @@ const MonitScreen: FC = () => {
               <Card
                 title={item.cameraName}
                 size="small"
+                className={Styles.videoCard}
                 extra={
                   item.cameraStatus === constants.cameraStatus.NORMAL ? (
-                    <Badge status="success" text="正常" />
+                    <Badge status="success" text="在线" />
                   ) : item.cameraStatus === constants.cameraStatus.OFFLINE ? (
                     <Badge status="default" text="离线" />
                   ) : (

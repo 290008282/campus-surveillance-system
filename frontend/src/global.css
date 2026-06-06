@@ -1,0 +1,380 @@
+/* ===== Dark Sci-Fi Theme ===== */
+
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background-color: #0b1120;
+  color: #cbd5e1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e2d42;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2a3f5f;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ===== Layout ===== */
+.ant-layout-header {
+  border-bottom: 1px solid #1e2d42;
+  padding: 0 24px !important;
+  height: 56px !important;
+  line-height: 56px !important;
+}
+
+.ant-layout-sider {
+  box-shadow: none !important;
+}
+
+.ant-layout-sider .ant-menu {
+  padding: 6px 0;
+  border-right: none;
+}
+
+/* ===== Cards with glow border ===== */
+.ant-card {
+  border: 1px solid #1e2d42;
+  border-radius: 10px;
+  background: #131c2e;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.ant-card:hover {
+  border-color: rgba(0, 212, 255, 0.2);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.3),
+    0 0 1px rgba(0, 212, 255, 0.15);
+}
+
+.ant-card .ant-card-head {
+  border-bottom: 1px solid #1e2d42;
+  padding: 0 20px;
+  min-height: 48px;
+}
+
+.ant-card .ant-card-head-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: #e2e8f0;
+  letter-spacing: 0.03em;
+}
+
+.ant-card .ant-card-body {
+  padding: 16px 20px;
+}
+
+/* ===== Tables ===== */
+.ant-table-wrapper .ant-table {
+  border-radius: 6px;
+  overflow: hidden;
+  background: #131c2e;
+}
+
+.ant-table-wrapper .ant-table-thead > tr > th {
+  font-weight: 700;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  background: #0f1729;
+  padding: 10px 16px;
+  border-bottom: 1px solid #1e2d42;
+}
+
+.ant-table-wrapper .ant-table-tbody > tr > td {
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #cbd5e1;
+  border-bottom: 1px solid rgba(30, 45, 66, 0.5);
+  transition: background-color 0.15s;
+}
+
+.ant-table-wrapper .ant-table-tbody > tr:hover > td {
+  background: rgba(0, 212, 255, 0.04) !important;
+}
+
+.ant-table-wrapper .ant-table-tbody > tr:nth-child(even) > td {
+  background: rgba(15, 23, 41, 0.4);
+}
+
+.ant-table-wrapper .ant-table-placeholder {
+  background: #131c2e;
+}
+
+/* ===== Buttons with glow ===== */
+.ant-btn {
+  font-weight: 600;
+  transition: all 0.25s ease;
+}
+
+.ant-btn-primary {
+  box-shadow: 0 0 16px rgba(0, 212, 255, 0.25);
+  text-shadow: 0 0 8px rgba(0, 212, 255, 0.3);
+}
+
+.ant-btn-primary:hover {
+  box-shadow: 0 0 24px rgba(0, 212, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+.ant-btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.2);
+}
+
+.ant-btn-default {
+  border-color: #1e2d42;
+  color: #94a3b8;
+}
+
+.ant-btn-default:hover {
+  border-color: #00d4ff;
+  color: #00d4ff;
+}
+
+/* ===== Inputs ===== */
+.ant-input,
+.ant-select-selector,
+.ant-picker,
+.ant-input-affix-wrapper {
+  background: #0f1729 !important;
+  border-color: #1e2d42 !important;
+  color: #e2e8f0 !important;
+  transition: all 0.25s ease;
+}
+
+/* Fix affix-wrapper inner structure */
+.ant-input-affix-wrapper .ant-input {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.ant-input-affix-wrapper .ant-input-prefix,
+.ant-input-affix-wrapper .ant-input-suffix {
+  background: transparent !important;
+  color: #64748b;
+  border: none !important;
+}
+
+.ant-input:hover,
+.ant-select:not(.ant-select-focused) .ant-select-selector:hover,
+.ant-input-affix-wrapper:hover {
+  border-color: #2a3f5f !important;
+}
+
+.ant-input:focus,
+.ant-input-focused,
+.ant-input-affix-wrapper-focused,
+.ant-select-focused .ant-select-selector {
+  border-color: #00d4ff !important;
+  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.12) !important;
+}
+
+.ant-input::placeholder {
+  color: #475569 !important;
+}
+
+.ant-input-prefix,
+.ant-input-suffix {
+  color: #64748b;
+}
+
+/* ===== Tags ===== */
+.ant-tag {
+  border-radius: 3px;
+  font-weight: 600;
+  font-size: 11.5px;
+  padding: 2px 8px;
+  letter-spacing: 0.02em;
+}
+
+/* ===== Modal ===== */
+.ant-modal .ant-modal-content {
+  border-radius: 12px;
+  background: #1a2540;
+  border: 1px solid #1e2d42;
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.5),
+    0 0 1px rgba(0, 212, 255, 0.1);
+  overflow: hidden;
+}
+
+.ant-modal .ant-modal-header {
+  padding: 20px 24px 16px;
+  background: #1a2540;
+  border-bottom: 1px solid #1e2d42;
+}
+
+.ant-modal .ant-modal-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.ant-modal .ant-modal-body {
+  padding: 20px 24px;
+  color: #cbd5e1;
+}
+
+.ant-modal .ant-modal-footer {
+  padding: 12px 24px 20px;
+  border-top: none;
+}
+
+.ant-modal .ant-modal-close {
+  color: #64748b;
+}
+
+/* ===== Descriptions ===== */
+.ant-descriptions-bordered .ant-descriptions-view {
+  border-radius: 6px;
+  border: 1px solid #1e2d42;
+  overflow: hidden;
+}
+
+.ant-descriptions-bordered .ant-descriptions-item-label {
+  background: #0f1729;
+  font-weight: 600;
+  font-size: 12.5px;
+  color: #64748b;
+  border-right: 1px solid #1e2d42;
+}
+
+.ant-descriptions-bordered .ant-descriptions-item-content {
+  color: #cbd5e1;
+}
+
+/* ===== Form ===== */
+.ant-form-item-label > label {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+/* ===== Pagination ===== */
+.ant-pagination .ant-pagination-item {
+  border-radius: 4px;
+  font-weight: 600;
+  border-color: #1e2d42;
+}
+
+.ant-pagination .ant-pagination-item a {
+  color: #94a3b8;
+}
+
+.ant-pagination .ant-pagination-item-active {
+  background: #00d4ff;
+  border-color: #00d4ff;
+}
+
+.ant-pagination .ant-pagination-item-active a {
+  color: #0b1120;
+}
+
+/* ===== Dropdown ===== */
+.ant-dropdown-menu {
+  background: #1a2540;
+  border: 1px solid #1e2d42;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.ant-dropdown-menu-item {
+  color: #cbd5e1;
+}
+
+.ant-dropdown-menu-item:hover {
+  background: rgba(0, 212, 255, 0.08);
+}
+
+/* ===== Popconfirm ===== */
+.ant-popover .ant-popover-inner {
+  background: #1a2540;
+  border: 1px solid #1e2d42;
+  border-radius: 8px;
+}
+
+/* ===== Spin ===== */
+.ant-spin-blur::after {
+  opacity: 0.5;
+  background: #0b1120;
+}
+
+.ant-spin .ant-spin-dot-item {
+  background-color: #00d4ff;
+}
+
+/* ===== Badge ===== */
+.ant-badge-status-text {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* ===== Page transition ===== */
+.ant-layout-content > div {
+  animation: pageEnter 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== Selection ===== */
+::selection {
+  background: rgba(0, 212, 255, 0.2);
+  color: #e2e8f0;
+}
+
+/* ===== Subtle scan line effect on body ===== */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.015) 2px,
+    rgba(0, 0, 0, 0.015) 4px
+  );
+}
+
+/* ===== Message / notification ===== */
+.ant-message-notice-content {
+  background: #1a2540;
+  border: 1px solid #1e2d42;
+  border-radius: 8px;
+  color: #e2e8f0;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* ===== Empty state ===== */
+.ant-empty-description {
+  color: #475569;
+}
